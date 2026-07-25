@@ -56,6 +56,7 @@ export type DeliveryReceiptData = {
 
   buyer_name: string;
   buyer_address: string;
+  buyer_phone?: string;
 
   receipt_type?: 'DELIVERY' | 'PAYMENT' | 'TEST';
   opening_balance: number;
@@ -239,6 +240,7 @@ export function buildPrintableReceiptLines(data: DeliveryReceiptData): Printable
     { text: " To:", bold: true },
     { text: `  ${data.buyer_name}` },
     { text: `  ${data.buyer_address || ""}` },
+    data.buyer_phone ? { text: `  Mobile: ${data.buyer_phone}` } : { text: "" },
     { text: divider },
     { text: padColumns("         Opening Balance:", `₹${data.opening_balance.toFixed(2)}`), bold: true },
     { text: divider },

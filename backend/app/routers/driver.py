@@ -1,28 +1,28 @@
 # pyright: reportUnboundVariable=false
 # pyright: reportPossiblyUnboundVariable=false
+import datetime
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy import select
-from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload, selectinload
 
-from app.auth.dependencies import get_current_active_user, require_roles, get_tenant_db
-from app.models import Buyer, DeliveryBill, DeliveryItem, Item, User
+from app.auth.dependencies import get_current_active_user, get_tenant_db, get_platform_db
+from app.models import Buyer, DeliveryBill, DeliveryItem, Item, User, Organization
 from app.models.enums import UserRole
-from app.schemas.delivery import DeliveryBillCreate, DeliveryBillOut, DebtCollectionCreate
-from app.schemas.item import ItemOut
-from app.schemas.buyer import BuyerOut
-from fastapi import Header
-import datetime
 from app.models.sequence import TenantSequence
+from app.schemas.buyer import BuyerOut
+from app.schemas.delivery import DebtCollectionCreate, DeliveryBillCreate, DeliveryBillOut
+from app.schemas.item import ItemOut
+from app.schemas.organization import OrganizationOut
+
 
 async def generate_bill_number(db: AsyncSession, target_date: datetime.datetime, prefix: str = "SHA") -> str:
-    # Format: prefix_YYYY_MM
+    # Format: prefix_YYYY
     year = target_date.strftime("%Y")
-    month = target_date.strftime("%m")
-    seq_name = f"bill_{prefix.lower()}_{year}_{month}"
+    seq_name = f"bill_{prefix.lower()}_{year}"
     
     seq = await db.scalar(select(TenantSequence).where(TenantSequence.name == seq_name).with_for_update())
     if not seq:
@@ -30,8 +30,8 @@ async def generate_bill_number(db: AsyncSession, target_date: datetime.datetime,
         db.add(seq)
         
     seq.last_value += 1
-    # 5-digit padding: SHA-YYYY-MM-XXXXX
-    return f"{prefix}-{year}-{month}-{seq.last_value:05d}"
+    # 8-digit padding: PREFIX-YYYY-00000000
+    return f"{prefix}-{year}-{seq.last_value:08d}"
 
 router = APIRouter(tags=["Driver"])
 
@@ -41,6 +41,7 @@ async def create_delivery_entry(
     x_idempotency_key: Annotated[str | None, Header()] = None,
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_tenant_db),
+    platform_db: AsyncSession = Depends(get_platform_db),
 ):
     if x_idempotency_key:
         existing_bill = await db.scalar(
@@ -76,7 +77,9 @@ async def create_delivery_entry(
         if bill_timestamp.tzinfo is None:
             bill_timestamp = bill_timestamp.replace(tzinfo=datetime.UTC)
             
-        new_bill_number = await generate_bill_number(db, bill_timestamp)
+        org = await platform_db.get(Organization, current_user.organization_id)
+        sales_prefix = org.bill_prefix_sales if org else "SHA"
+        new_bill_number = await generate_bill_number(db, bill_timestamp, prefix=sales_prefix)
 
         # Create the Bill parent
         bill = DeliveryBill(
@@ -155,9 +158,13 @@ async def create_delivery_entry(
         if buyer:
             buyer.balance_pending = float(buyer.balance_pending) + total_bill
             buyer.balance_pending = float(buyer.balance_pending) - (bill_in.cash_collected + bill_in.upi_collected)
+            buyer.total_lifetime_sales = float(buyer.total_lifetime_sales) + total_bill
+            buyer.total_lifetime_paid = float(buyer.total_lifetime_paid) + (bill_in.cash_collected + bill_in.upi_collected)
             bill.closing_balance = float(buyer.balance_pending)
+            bill.closing_cylinders = sum(inv.cylinders_pending for inv in buyer.inventory)
         else:
             bill.closing_balance = 0.0
+            bill.closing_cylinders = 0
             
     await db.flush()
     # Capture ID before commit
@@ -179,12 +186,23 @@ async def list_delivery_entries(
     cursor: uuid.UUID | None = None,
     limit: int = 20,
     bill_type: str | None = None,
+    current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_tenant_db),
 ):
     query = select(DeliveryBill).options(
         joinedload(DeliveryBill.buyer).selectinload(Buyer.inventory),
         selectinload(DeliveryBill.items).joinedload(DeliveryItem.item)
     )
+    
+    if current_user.role == UserRole.DRIVER:
+        query = query.filter(DeliveryBill.driver_id == current_user.id)
+    
+    import zoneinfo
+    from datetime import datetime
+    ist_tz = zoneinfo.ZoneInfo('Asia/Kolkata')
+    now_ist = datetime.now(ist_tz)
+    today = datetime(now_ist.year, now_ist.month, now_ist.day, tzinfo=ist_tz)
+    query = query.filter(DeliveryBill.timestamp >= today)
     
     if bill_type == "sales":
         query = query.filter(DeliveryBill.items.any())
@@ -233,6 +251,7 @@ async def create_debt_collection(
     x_idempotency_key: Annotated[str | None, Header()] = None,
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_tenant_db),
+    platform_db: AsyncSession = Depends(get_platform_db),
 ):
     if collection_in.cash_collected + collection_in.upi_collected <= 0:
         raise HTTPException(status_code=400, detail="Collection amount must be greater than zero.")
@@ -267,7 +286,9 @@ async def create_debt_collection(
         if bill_timestamp.tzinfo is None:
             bill_timestamp = bill_timestamp.replace(tzinfo=datetime.UTC)
 
-        new_bill_number = await generate_bill_number(db, bill_timestamp, prefix="PAY")
+        org = await platform_db.get(Organization, current_user.organization_id)
+        collection_prefix = org.bill_prefix_collection if org else "PAY"
+        new_bill_number = await generate_bill_number(db, bill_timestamp, prefix=collection_prefix)
 
         # Create the Bill parent
         bill = DeliveryBill(
@@ -287,7 +308,9 @@ async def create_debt_collection(
 
         # Update Buyer Balances
         buyer.balance_pending = float(buyer.balance_pending) - (collection_in.cash_collected + collection_in.upi_collected)
+        buyer.total_lifetime_paid = float(buyer.total_lifetime_paid) + (collection_in.cash_collected + collection_in.upi_collected)
         bill.closing_balance = float(buyer.balance_pending)
+        bill.closing_cylinders = sum(inv.cylinders_pending for inv in buyer.inventory)
 
     await db.flush()
     bill_id = bill.id
@@ -308,7 +331,12 @@ async def generate_delivery_pdf_endpoint(
     # Note: Drivers can access their own PDFs, or admins can access all. For now, basic auth is enough.
 ):
     from fastapi.responses import StreamingResponse
-    from app.services.reports.delivery_pdf import generate_delivery_pdf, DeliveryPdfData, DeliveryPdfItemData
+
+    from app.services.reports.delivery_pdf import (
+        DeliveryPdfData,
+        DeliveryPdfItemData,
+        generate_delivery_pdf,
+    )
     
     bill = await db.scalar(
         select(DeliveryBill)
@@ -364,4 +392,15 @@ async def generate_delivery_pdf_endpoint(
         media_type="application/pdf",
         headers={"Content-Disposition": f"attachment; filename=Bill_{bill_no}.pdf"}
     )
+
+
+@router.get("/organization", response_model=OrganizationOut)
+async def get_driver_organization(
+    current_user: User = Depends(get_current_active_user),
+    platform_db: AsyncSession = Depends(get_platform_db),
+):
+    org = await platform_db.get(Organization, current_user.organization_id)
+    if not org:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    return org
 

@@ -1,6 +1,9 @@
 from uuid import UUID
+
 from pydantic import BaseModel, ConfigDict
+
 from .inventory import InventoryItem
+
 
 class ProviderBase(BaseModel):
     name: str

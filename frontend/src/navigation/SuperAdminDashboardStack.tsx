@@ -4,9 +4,11 @@ import SuperAdminDashboard from '../screens/superadmin/SuperAdminDashboard';
 import ManageOrganizationScreen from '../screens/superadmin/ManageOrganizationScreen';
 import ManageUserScreen from '../screens/superadmin/ManageUserScreen';
 
+import { Organization } from '../types/api';
+
 export type SuperAdminDashboardStackParamList = {
   DashboardHome: undefined;
-  ManageOrganization: { orgId: string; orgName: string; orgMaxUsers?: number };
+  ManageOrganization: { org: Organization };
   ManageUser: { orgId: string; userId: string; username: string; isActive: boolean; role: string };
 };
 

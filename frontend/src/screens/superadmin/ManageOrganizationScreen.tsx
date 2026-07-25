@@ -14,26 +14,34 @@ import { UserPlus, Building2, KeyRound, Save, Trash2, Users, ChevronRight } from
 type Props = NativeStackScreenProps<SuperAdminDashboardStackParamList, 'ManageOrganization'>;
 
 export default function ManageOrganizationScreen({ route, navigation }: Props) {
-  const { orgId, orgName, orgMaxUsers } = route.params as any; // Using 'any' if route type isn't fully updated
+  const { org } = route.params as any; // Using 'any' if route type isn't fully updated
   
   // Create Admin State
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
   // Update Org State
-  const [editName, setEditName] = useState(orgName);
-  const [editMaxUsers, setEditMaxUsers] = useState(orgMaxUsers?.toString() || '10');
+  const [editName, setEditName] = useState(org.name);
+  const [editMaxUsers, setEditMaxUsers] = useState(org.max_users?.toString() || '10');
+  const [address, setAddress] = useState(org.address || '');
+  const [phone, setPhone] = useState(org.phone || '');
+  const [salesPrefix, setSalesPrefix] = useState(org.bill_prefix_sales || 'SHA');
+  const [collectionPrefix, setCollectionPrefix] = useState(org.bill_prefix_collection || 'PAY');
 
-  const { data: users, isLoading: isLoadingUsers } = useOrganizationUsers(orgId);
+  const { data: users, isLoading: isLoadingUsers } = useOrganizationUsers(org.id);
   const createAdminMutation = useCreateTenantAdmin();
   const updateOrgMutation = useUpdateOrganization();
   const deleteOrgMutation = useDeleteOrganization();
 
   useEffect(() => {
     // Sync params if they change
-    setEditName(orgName);
-    setEditMaxUsers(orgMaxUsers?.toString() || '10');
-  }, [orgName, orgMaxUsers]);
+    setEditName(org.name);
+    setEditMaxUsers(org.max_users?.toString() || '10');
+    setAddress(org.address || '');
+    setPhone(org.phone || '');
+    setSalesPrefix(org.bill_prefix_sales || 'SHA');
+    setCollectionPrefix(org.bill_prefix_collection || 'PAY');
+  }, [org]);
 
   const handleCreateAdmin = () => {
     if (!username || !password) {
@@ -41,7 +49,7 @@ export default function ManageOrganizationScreen({ route, navigation }: Props) {
       return;
     }
     createAdminMutation.mutate(
-      { orgId, data: { username, password, role: 'tenant_admin' } },
+      { orgId: org.id, data: { username, password, role: 'tenant_admin' } },
       {
         onSuccess: () => {
           Alert.alert('Success', `Admin '${username}' successfully created!`);
@@ -58,11 +66,21 @@ export default function ManageOrganizationScreen({ route, navigation }: Props) {
   const handleUpdateOrg = () => {
     if (!editName || !editMaxUsers) return;
     updateOrgMutation.mutate(
-      { orgId, data: { name: editName, max_users: parseInt(editMaxUsers, 10) } },
+      { 
+        orgId: org.id, 
+        data: { 
+          name: editName, 
+          max_users: parseInt(editMaxUsers, 10),
+          address: address.trim() || null,
+          phone: phone.trim() || null,
+          bill_prefix_sales: salesPrefix.trim() || 'SHA',
+          bill_prefix_collection: collectionPrefix.trim() || 'PAY'
+        } 
+      },
       {
-        onSuccess: () => {
+        onSuccess: (updatedOrg: any) => {
           Alert.alert('Success', 'Organization updated successfully');
-          navigation.setParams({ orgName: editName, orgMaxUsers: parseInt(editMaxUsers, 10) } as any);
+          navigation.setParams({ org: updatedOrg } as any);
         },
         onError: (error: any) => {
           Alert.alert('Error', error.response?.data?.detail || 'Failed to update organization');
@@ -81,7 +99,7 @@ export default function ManageOrganizationScreen({ route, navigation }: Props) {
           text: 'Delete Permanently', 
           style: 'destructive',
           onPress: () => {
-            deleteOrgMutation.mutate(orgId, {
+            deleteOrgMutation.mutate(org.id, {
               onSuccess: () => {
                 navigation.goBack();
               },
@@ -106,7 +124,7 @@ export default function ManageOrganizationScreen({ route, navigation }: Props) {
           </View>
           <View className="flex-1">
             <Text className="text-sm font-semibold text-indigo-600 uppercase tracking-wider mb-1">Manage</Text>
-            <Text className="text-2xl font-extrabold text-slate-900">{orgName}</Text>
+            <Text className="text-2xl font-extrabold text-slate-900">{org.name}</Text>
           </View>
         </View>
 
@@ -123,11 +141,51 @@ export default function ManageOrganizationScreen({ route, navigation }: Props) {
 
           <Text className="text-sm font-semibold text-slate-700 mb-2">Max Users</Text>
           <TextInput
-            className="border border-zinc-200 rounded-xl p-4 text-base text-slate-900 bg-zinc-50 mb-6 focus:border-indigo-500 focus:bg-white"
+            className="border border-zinc-200 rounded-xl p-4 text-base text-slate-900 bg-zinc-50 mb-4 focus:border-indigo-500 focus:bg-white"
             value={editMaxUsers}
             onChangeText={setEditMaxUsers}
             keyboardType="number-pad"
           />
+
+          <Text className="text-sm font-semibold text-slate-700 mb-2">Address</Text>
+          <TextInput
+            className="border border-zinc-200 rounded-xl p-4 text-base text-slate-900 bg-zinc-50 mb-4 focus:border-indigo-500 focus:bg-white"
+            value={address}
+            onChangeText={setAddress}
+            placeholder="Optional"
+          />
+
+          <Text className="text-sm font-semibold text-slate-700 mb-2">Mobile Number</Text>
+          <TextInput
+            className="border border-zinc-200 rounded-xl p-4 text-base text-slate-900 bg-zinc-50 mb-4 focus:border-indigo-500 focus:bg-white"
+            value={phone}
+            onChangeText={setPhone}
+            keyboardType="phone-pad"
+            placeholder="Optional"
+          />
+
+          <View className="flex-row gap-4 mb-6">
+            <View className="flex-1">
+              <Text className="text-sm font-semibold text-slate-700 mb-2">Sales Prefix</Text>
+              <TextInput
+                className="border border-zinc-200 rounded-xl p-4 text-base text-slate-900 bg-zinc-50 focus:border-indigo-500 focus:bg-white"
+                value={salesPrefix}
+                onChangeText={setSalesPrefix}
+                placeholder="SHA"
+                autoCapitalize="characters"
+              />
+            </View>
+            <View className="flex-1">
+              <Text className="text-sm font-semibold text-slate-700 mb-2">Collection Prefix</Text>
+              <TextInput
+                className="border border-zinc-200 rounded-xl p-4 text-base text-slate-900 bg-zinc-50 focus:border-indigo-500 focus:bg-white"
+                value={collectionPrefix}
+                onChangeText={setCollectionPrefix}
+                placeholder="PAY"
+                autoCapitalize="characters"
+              />
+            </View>
+          </View>
 
           <Pressable 
             className={`flex-row justify-center items-center py-4 rounded-xl ${updateOrgMutation.isPending ? 'bg-slate-300' : 'bg-slate-900 active:bg-slate-800'}`}
@@ -206,7 +264,7 @@ export default function ManageOrganizationScreen({ route, navigation }: Props) {
                 key={user.id} 
                 className="flex-row items-center justify-between py-4 border-b border-zinc-50 active:bg-zinc-50"
                 onPress={() => navigation.navigate('ManageUser', {
-                  orgId,
+                  orgId: org.id,
                   userId: user.id,
                   username: user.username,
                   isActive: user.is_active,

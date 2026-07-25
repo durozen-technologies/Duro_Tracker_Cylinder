@@ -1,16 +1,15 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload, selectinload
 
-from app.auth.dependencies import require_tenant_admin, get_tenant_db
-from app.models import Provider, PurchaseEntry, PurchaseBill, Item
+from app.auth.dependencies import get_tenant_db, require_tenant_admin
+from app.models import Item, Provider, PurchaseBill, PurchaseEntry
 from app.schemas.provider import ProviderCreate, ProviderOut, ProviderUpdate
 from app.schemas.purchase import PurchaseBillCreate, PurchaseBillOut
-from sqlalchemy.orm import selectinload, joinedload
-from fastapi import Header
 
 router = APIRouter(dependencies=[Depends(require_tenant_admin())], tags=["Purchases"])
 

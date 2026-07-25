@@ -1,14 +1,17 @@
-from uuid import UUID
-from sqlalchemy import Uuid, Integer, Numeric, ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from .base import BaseModelMixin
-from ..core.ids import UUID_SQL_TYPE, uuid7
-from app.db.database import Base
 from typing import TYPE_CHECKING
+from uuid import UUID
+
+from sqlalchemy import ForeignKey, Integer, Numeric
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.db.database import Base
+
+from ..core.ids import UUID_SQL_TYPE, uuid7
+from .base import BaseModelMixin
 
 if TYPE_CHECKING:
-    from .purchase_bill import PurchaseBill
     from .item import Item
+    from .purchase_bill import PurchaseBill
 
 class PurchaseEntry(Base, BaseModelMixin):
     __tablename__ = "purchase_entries"

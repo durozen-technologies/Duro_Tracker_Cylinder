@@ -1,11 +1,10 @@
 import asyncio
 from logging.config import fileConfig
 
+from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
-
-from alembic import context
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -19,7 +18,8 @@ if config.config_file_name is not None:
 # add your model's MetaData object here
 # for 'autogenerate' support
 from app.db.database import Base
-import app.models
+import app.models  # noqa: F401
+
 target_metadata = Base.metadata
 
 def include_object_public(object, name, type_, reflected, compare_to):
@@ -124,9 +124,10 @@ def do_run_migrations(connection: Connection, tenant_schemas: list[str]) -> None
 
 
 async def run_async_migrations() -> None:
+    from sqlalchemy import text
+
     from app.core.config import Settings
     from app.db.tenant_schema import build_schema_name
-    from sqlalchemy import text
     
     settings = Settings()
     

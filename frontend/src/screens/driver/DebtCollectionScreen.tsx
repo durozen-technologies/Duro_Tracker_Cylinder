@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigation } from '@react-navigation/native';
 import { DeliveryReceiptData } from '../../utils/printer';
 import { useReceiptImagePrintJob } from '../../hooks/use-receipt-image-print-job';
+import { useDriverOrganization } from '../../hooks/useDrivers';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
 
@@ -17,6 +18,7 @@ export default function DebtCollectionScreen() {
   const { userToken, logout } = useAuth();
   const { preferredPrinter } = usePrinterStore();
   const queryClient = useQueryClient();
+  const { data: organization } = useDriverOrganization();
   const { startReceiptImagePrintJob, receiptImagePrintBridge } = useReceiptImagePrintJob();
   
   const [buyerModalVisible, setBuyerModalVisible] = useState(false);
@@ -92,8 +94,9 @@ export default function DebtCollectionScreen() {
           receipt_type: 'PAYMENT',
           receipt_number: data?.data?.bill_number || Math.random().toString(36).substring(2, 8).toUpperCase(),
           date: data?.data?.timestamp || new Date().toISOString(),
-          agency_name: "Sree Hari Agencies",
-          agency_address: "Namakkal",
+          agency_name: organization?.name || "Agency Name",
+          agency_address: organization?.address || "",
+          agency_mobile: organization?.phone || "",
           buyer_name: selectedBuyer.name,
           buyer_address: selectedBuyer.address || "",
           opening_balance: parseFloat(selectedBuyer.balance_pending.toString()),

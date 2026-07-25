@@ -1,21 +1,21 @@
 import uuid
-from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select, func
-from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
+from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import require_super_admin
 from app.core.security import get_password_hash
 from app.db.session import get_platform_db
+from app.db.tenant_metadata import create_tenant_schema_and_tables, drop_tenant_schema
+from app.db.tenant_schema import build_schema_name
 from app.models import Organization, User
 from app.models.enums import UserRole
-from app.db.tenant_metadata import drop_tenant_schema, create_tenant_schema_and_tables
-from app.db.tenant_schema import build_schema_name
-from sqlalchemy.exc import IntegrityError
 from app.schemas.organization import OrganizationCreate, OrganizationOut, OrganizationUpdate
 from app.schemas.user import UserCreate, UserOut, UserUpdate
+
 
 class SuperAdminStatsOut(BaseModel):
     total_users: int
@@ -41,7 +41,14 @@ async def create_organization(
     org_in: OrganizationCreate,
     db: AsyncSession = Depends(get_platform_db),
 ):
-    org = Organization(name=org_in.name, max_users=org_in.max_users)
+    org = Organization(
+        name=org_in.name, 
+        max_users=org_in.max_users,
+        address=org_in.address,
+        phone=org_in.phone,
+        bill_prefix_sales=org_in.bill_prefix_sales,
+        bill_prefix_collection=org_in.bill_prefix_collection
+    )
     db.add(org)
     await db.commit()
     await db.refresh(org)
@@ -75,6 +82,14 @@ async def update_organization(
         org.name = org_in.name
     if org_in.max_users is not None:
         org.max_users = org_in.max_users
+    if org_in.address is not None:
+        org.address = org_in.address
+    if org_in.phone is not None:
+        org.phone = org_in.phone
+    if org_in.bill_prefix_sales is not None:
+        org.bill_prefix_sales = org_in.bill_prefix_sales
+    if org_in.bill_prefix_collection is not None:
+        org.bill_prefix_collection = org_in.bill_prefix_collection
         
     await db.commit()
     await db.refresh(org)

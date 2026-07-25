@@ -8,6 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import CustomAlert from '../../components/CustomAlert';
 import PrinterSettingsModal from '../../components/PrinterSettingsModal';
 import { usePrinterStore } from '../../store/printer-store';
+import { useDriverOrganization } from '../../hooks/useDrivers';
 import { DeliveryReceiptData, DeliveryReceiptItem } from '../../utils/printer';
 import { useReceiptImagePrintJob } from '../../hooks/use-receipt-image-print-job';
 
@@ -56,6 +57,7 @@ export default function DeliveryScreen() {
   };
 
   const { receiptImagePrintBridge, startReceiptImagePrintJob } = useReceiptImagePrintJob();
+  const { data: organization } = useDriverOrganization();
 
   const [idempotencyKey, setIdempotencyKey] = useState<string>(
     Date.now().toString(36) + Math.random().toString(36).substring(2)
@@ -225,8 +227,9 @@ export default function DeliveryScreen() {
         const receiptData: DeliveryReceiptData = {
           receipt_number: data?.data?.bill_number || (data?.data?.id ? data.data.id.split('-')[0].toUpperCase() : Math.random().toString(36).substring(2, 8).toUpperCase()),
           date: data?.data?.timestamp || new Date().toISOString(),
-          agency_name: "Sree Hari Agencies",
-          agency_address: "Namakkal",
+          agency_name: organization?.name || "Agency Name",
+          agency_address: organization?.address || "",
+          agency_mobile: organization?.phone || "",
           buyer_name: selectedBuyer.name,
           buyer_address: selectedBuyer.address || "",
           opening_balance: opening_balance,

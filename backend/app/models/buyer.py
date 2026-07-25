@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import Boolean, Enum, Integer, Numeric, String, ForeignKey, CheckConstraint
+from sqlalchemy import Boolean, CheckConstraint, Enum, ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..core.ids import UUID_SQL_TYPE, uuid7
@@ -20,9 +20,10 @@ class Buyer(Base, BaseModelMixin):
     address: Mapped[str | None] = mapped_column(String(500), nullable=True)
     price_per_kg: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
     
-    # Financial debt
+    # Financial debt and lifetime aggregates
     balance_pending: Mapped[float] = mapped_column(Numeric(12, 2), default=0, nullable=False)
-    
+    total_lifetime_sales: Mapped[float] = mapped_column(Numeric(12, 2), default=0, nullable=False)
+    total_lifetime_paid: Mapped[float] = mapped_column(Numeric(12, 2), default=0, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     deliveries = relationship("DeliveryBill", back_populates="buyer")

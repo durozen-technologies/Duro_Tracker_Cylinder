@@ -107,14 +107,24 @@ export interface LedgerEntry {
   cylRunBal: number;
 }
 
+export interface PaginatedLedgerResponse {
+  items: LedgerEntry[];
+  next_cursor: string | null;
+}
+
 export function useBuyerLedger(buyerId?: string) {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ['buyers', buyerId, 'ledger'],
-    queryFn: async () => {
-      if (!buyerId) return [];
-      const response = await api.get<LedgerEntry[]>(`/admin/buyers/${buyerId}/ledger`);
+    initialPageParam: null as string | null,
+    queryFn: async ({ pageParam }) => {
+      if (!buyerId) return { items: [], next_cursor: null };
+      const response = await api.get<PaginatedLedgerResponse>(`/admin/buyers/${buyerId}/ledger`, {
+        params: { cursor: pageParam, limit: 20 }
+      });
       return response.data;
     },
-    enabled: !!buyerId
+    getNextPageParam: (lastPage) => lastPage.next_cursor || undefined,
+    enabled: !!buyerId,
+    select: (data) => data.pages.flatMap((page) => page.items),
   });
 }

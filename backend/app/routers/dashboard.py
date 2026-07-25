@@ -1,14 +1,13 @@
 import uuid
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from datetime import datetime, timezone
 
-from app.auth.dependencies import require_tenant_admin, get_tenant_db
-from app.db.session import get_platform_db
-from app.models import DeliveryBill, DeliveryItem, Item, User, Buyer
+from app.auth.dependencies import get_tenant_db, require_tenant_admin
+from app.models import Buyer, DeliveryBill, DeliveryItem, User
 
 router = APIRouter(dependencies=[Depends(require_tenant_admin())])
 
@@ -37,8 +36,12 @@ async def get_dashboard_metrics(
         
     org_id = current_user.organization_id
     
-    now = datetime.now(timezone.utc)
-    start_of_today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    import zoneinfo
+    ist = zoneinfo.ZoneInfo("Asia/Kolkata")
+    now_ist = datetime.now(ist)
+    start_of_today_ist = now_ist.replace(hour=0, minute=0, second=0, microsecond=0)
+    # Convert IST midnight back to UTC for database querying
+    start_of_today = start_of_today_ist.astimezone(timezone.utc)
 
     # Aggregate today's collection and sales from DeliveryBill
     bill_result = await db.execute(
@@ -82,35 +85,58 @@ async def get_recent_activity(
     if not current_user.organization_id:
         raise HTTPException(status_code=403, detail="No organization")
         
-    from sqlalchemy.orm import joinedload, selectinload
     
-    # Fetch last 20 deliveries
-    result = await db.scalars(
-        select(DeliveryBill)
-        .options(joinedload(DeliveryBill.driver), joinedload(DeliveryBill.buyer).selectinload(Buyer.inventory), selectinload(DeliveryBill.items).joinedload(DeliveryItem.item))
+    # Fetch last 20 deliveries using scalar aggregation to avoid ORM N+1 overhead
+    query = (
+        select(
+            DeliveryBill.id,
+            DeliveryBill.bill_number,
+            DeliveryBill.timestamp,
+            DeliveryBill.total_bill_amount,
+            DeliveryBill.cash_collected,
+            DeliveryBill.upi_collected,
+            DeliveryBill.adhoc_buyer_name,
+            User.username.label("driver_name"),
+            Buyer.name.label("buyer_name"),
+            func.coalesce(func.sum(DeliveryItem.full_delivered), 0).label("total_full")
+        )
+        .outerjoin(User, DeliveryBill.driver_id == User.id)
+        .outerjoin(Buyer, DeliveryBill.buyer_id == Buyer.id)
+        .outerjoin(DeliveryItem, DeliveryBill.id == DeliveryItem.delivery_bill_id)
+        .group_by(
+            DeliveryBill.id,
+            DeliveryBill.bill_number,
+            DeliveryBill.timestamp,
+            DeliveryBill.total_bill_amount,
+            DeliveryBill.cash_collected,
+            DeliveryBill.upi_collected,
+            DeliveryBill.adhoc_buyer_name,
+            User.username,
+            Buyer.name
+        )
         .order_by(DeliveryBill.timestamp.desc())
-        .limit(20)
+        .limit(4)
     )
-    entries = result.unique().all()
+    
+    result = await db.execute(query)
+    entries = result.all()
     
     activities = []
-    for entry in entries:
-        driver_name = entry.driver.username if entry.driver else "Unknown Driver"
-        buyer_name = entry.buyer.name if entry.buyer else entry.adhoc_buyer_name or "Unknown Buyer"
+    for row in entries:
+        driver_name = row.driver_name if row.driver_name else "Unknown Driver"
+        buyer_name = row.buyer_name if row.buyer_name else row.adhoc_buyer_name or "Unknown Buyer"
         
-        # Calculate total delivered for the message
-        total_full = sum(item.full_delivered for item in entry.items)
+        total_full = row.total_full
         
-        # Determine if it's primarily a delivery or a collection
-        bill_prefix = f"[{entry.bill_number}] " if entry.bill_number else ""
+        bill_prefix = f"[{row.bill_number}] " if row.bill_number else ""
         if total_full > 0:
             act_type = 'delivery'
             msg = f"{bill_prefix}Driver {driver_name} delivered {total_full} items to {buyer_name}"
-            amt = float(entry.total_bill_amount)
-        elif entry.cash_collected > 0 or entry.upi_collected > 0:
+            amt = float(row.total_bill_amount)
+        elif row.cash_collected > 0 or row.upi_collected > 0:
             act_type = 'collection'
             msg = f"{bill_prefix}Driver {driver_name} collected payment from {buyer_name}"
-            amt = float(entry.cash_collected + entry.upi_collected)
+            amt = float(row.cash_collected + row.upi_collected)
         else:
             act_type = 'delivery'
             msg = f"{bill_prefix}Driver {driver_name} recorded empty receipt from {buyer_name}"
@@ -118,10 +144,10 @@ async def get_recent_activity(
             
         activities.append(
             RecentActivityOut(
-                id=entry.id,
+                id=row.id,
                 type=act_type,
                 message=msg,
-                timestamp=entry.timestamp.isoformat(),
+                timestamp=row.timestamp.isoformat(),
                 amount=amt,
             )
         )

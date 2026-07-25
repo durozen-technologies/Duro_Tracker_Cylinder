@@ -1,10 +1,14 @@
-from uuid import UUID
 from typing import Optional
-from sqlalchemy import String, Numeric, Integer, Boolean, Uuid, ForeignKey, CheckConstraint
+from uuid import UUID
+
+from sqlalchemy import Boolean, CheckConstraint, ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from .base import BaseModelMixin
-from ..core.ids import UUID_SQL_TYPE, uuid7
+
 from app.db.database import Base
+
+from ..core.ids import UUID_SQL_TYPE, uuid7
+from .base import BaseModelMixin
+
 
 class Provider(Base, BaseModelMixin):
     __tablename__ = "providers"

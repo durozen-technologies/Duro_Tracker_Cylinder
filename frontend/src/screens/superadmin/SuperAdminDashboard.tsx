@@ -18,6 +18,10 @@ export default function SuperAdminDashboard({ navigation }: Props) {
   const [modalVisible, setModalVisible] = useState(false);
   const [newOrgName, setNewOrgName] = useState('');
   const [maxUsers, setMaxUsers] = useState('10');
+  const [address, setAddress] = useState('');
+  const [phone, setPhone] = useState('');
+  const [salesPrefix, setSalesPrefix] = useState('SHA');
+  const [collectionPrefix, setCollectionPrefix] = useState('PAY');
 
   const handleCreateOrg = () => {
     if (!newOrgName.trim()) {
@@ -31,12 +35,23 @@ export default function SuperAdminDashboard({ navigation }: Props) {
     }
 
     createOrgMutation.mutate(
-      { name: newOrgName.trim(), max_users: maxUsersInt },
+      { 
+        name: newOrgName.trim(), 
+        max_users: maxUsersInt,
+        address: address.trim() || null,
+        phone: phone.trim() || null,
+        bill_prefix_sales: salesPrefix.trim() || 'SHA',
+        bill_prefix_collection: collectionPrefix.trim() || 'PAY'
+      },
       {
         onSuccess: () => {
           setModalVisible(false);
           setNewOrgName('');
           setMaxUsers('10');
+          setAddress('');
+          setPhone('');
+          setSalesPrefix('SHA');
+          setCollectionPrefix('PAY');
         },
         onError: (err: any) => {
           Alert.alert('Error', err.response?.data?.detail || 'Failed to create organization');
@@ -103,7 +118,7 @@ export default function SuperAdminDashboard({ navigation }: Props) {
                   key={org.id}
                   className="p-5 flex-row items-center active:bg-slate-50"
                   style={index !== organizations.length - 1 ? { borderBottomWidth: 1, borderBottomColor: '#f8fafc' } : undefined}
-                  onPress={() => navigation.navigate('ManageOrganization', { orgId: org.id, orgName: org.name, orgMaxUsers: org.max_users })}
+                  onPress={() => navigation.navigate('ManageOrganization', { org: org })}
                 >
                   <View className="w-12 h-12 bg-indigo-50 rounded-xl items-center justify-center mr-4">
                     <Building2 size={24} color="#6366f1" />
@@ -151,6 +166,46 @@ export default function SuperAdminDashboard({ navigation }: Props) {
               value={maxUsers}
               onChangeText={setMaxUsers}
             />
+
+            <Text style={styles.label}>Address (Optional)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g. 123 Main St"
+              value={address}
+              onChangeText={setAddress}
+            />
+
+            <Text style={styles.label}>Mobile Number (Optional)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g. 9876543210"
+              keyboardType="phone-pad"
+              value={phone}
+              onChangeText={setPhone}
+            />
+
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.label}>Sales Bill Prefix</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="SHA"
+                  value={salesPrefix}
+                  onChangeText={setSalesPrefix}
+                  autoCapitalize="characters"
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.label}>Collection Prefix</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="PAY"
+                  value={collectionPrefix}
+                  onChangeText={setCollectionPrefix}
+                  autoCapitalize="characters"
+                />
+              </View>
+            </View>
 
             <Pressable 
               style={[styles.createBtn, createOrgMutation.isPending && styles.createBtnDisabled]}

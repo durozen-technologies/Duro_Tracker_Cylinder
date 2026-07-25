@@ -1,6 +1,6 @@
 import logging
 
-from .database import get_engine, get_session_local
+from .database import get_engine
 from .schema_guards import (
     _ensure_inventory_vehicle_number_column,
     _ensure_item_category_schema,

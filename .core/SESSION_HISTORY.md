@@ -1342,3 +1342,122 @@ Remove the icons from the two balance cards on the Provider CRM screen, identica
 - Adjusted typography and hierarchy so the **Bill Number** is the primary visual anchor (falling back gracefully to Ref ID if no bill number exists for legacy/dummy data).
 - Converted modal backgrounds to \g-slate-50\ and added padding so the new \shadow-sm\ rounded-2xl cards pop cleanly.
 
+
+### [2026-07-24 16:56:21] Pushed Changes to Remote Repository
+**User Request:**
+'push'
+
+**Actions Taken:**
+- Ran \git add .\ to stage all modifications including the new UI components and layout updates.
+- Ran \git commit\ with message detailing the premium UI updates and previous feature additions.
+- Successfully executed \git push\ to sync the local repository state with \origin/main\.
+
+
+### [2026-07-25 09:27:31] Updated Bill Number Format
+**User Request:**
+'in the sales and collection history the Bill No : xxxx'
+
+**Actions Taken:**
+- Updated the string formatting in \BuyersScreen.tsx\ from \Bill #xxxx\ to \Bill No : xxxx\ in the ledger card components.
+
+
+### [2026-07-25 09:38:01] Fixed Ledger Balance Calculation Bug
+**User Request:**
+'why the both clyinder balance match ?'
+
+**Actions Taken:**
+- Found a bug in \ackend/app/routers/admin.py:get_buyer_ledger\ where running balances for cylinders and financials started exactly at \ \ and ignored any 'initial balance' the buyer might have had before their first transaction.
+- Refactored the ledger running balance calculation: the system now calculates the total delta of all historical transactions and subtracts it from the *current* actual buyer balances to perfectly compute the 'initial offset'.
+- The running balances in the ledger will now accurately build up to the exact current totals shown on the Buyer CRM page.
+
+
+### [2026-07-25 09:45:12] Renamed Total Collections to Total Paid
+**User Request:**
+'in this page change the total colaction to total paid'
+
+**Actions Taken:**
+- Updated the label from 'Total Collections' to 'Total Paid' in \BuyersScreen.tsx\ for the buyer CRM view.
+
+
+### [2026-07-25 09:48:55] Updated Total Paid and Total Sales Calculation
+**User Request:**
+'yes' (to updating total paid to include all payments including spot payments)
+
+**Actions Taken:**
+- Updated \BuyersScreen.tsx\ to remove the strict \ilter\ on the \uyerLedgerData\ array when calculating the summary cards.
+- **Total Sales** now sums \mount\ across all history records.
+- **Total Paid** now sums \paid\ across all history records, correctly capturing both standalone debt collections AND on-the-spot payments made during cylinder deliveries.
+
+
+### [2026-07-25 10:02:29] Executed Enterprise API Optimization Plan
+**User Request:**
+Approved implementation plan for database query optimization and schema validation.
+
+**Actions Taken:**
+- Rewrote \get_recent_activity\ in \ackend/app/routers/dashboard.py\ to use SQL scalar aggregation (\unc.sum()\), \outerjoin\ with \coalesce\, and \aiseload('*')\. This completely eliminates the N+1 ORM hydration issue.
+- Rewrote \get_global_bills\ in \ackend/app/routers/admin.py\ using the identical scalar aggregation strategies to prevent N+1 queries.
+- Updated \DeliveryBillCreate\ schema in \ackend/app/schemas/delivery.py\ with an advanced \@model_validator(mode='after')\ to enforce mutual exclusivity on buyers, apply regex and normalization to adhoc names, and enforce strict upper boundaries (<10000) on item quantities.
+
+
+### [2026-07-25 10:18:50] Logical Calculation Fixes
+- Audited all mathematical calculations across the system.
+- Fixed Dashboard timezone boundary (now uses IST via zoneinfo).
+- Removed balance_pending/inventory from BuyerUpdate API to prevent manual silent corruption of the ledger.
+- Added closing_cylinders column to DeliveryBill and refactored get_buyer_ledger in admin.py to use stored O(1) snapshots instead of backwards chronological calculation. This eliminated the OOM N+1 risk and memory leak when viewing large ledgers.
+
+### [2026-07-25 11:05:09] Restrict Driver Bill History
+- Modified pp/routers/driver.py list_delivery_entries to only fetch bills created today (IST timezone).
+- Admin list_global_bills and get_buyer_ledger remain unaffected, ensuring admins see full history while drivers only see today.
+
+### [2026-07-25 11:13:17] Restrict Driver Bill History by User
+- Modified pp/routers/driver.py list_delivery_entries to filter by driver_id == current_user.id.
+- Drivers now only see bills they personally created, preventing them from seeing admin bills or other drivers' bills.
+
+### [2026-07-25 11:18:34] Remove Driver Pagination
+- Modified rontend/src/screens/driver/BillsScreen.tsx to replace useInfiniteQuery with useQuery.
+- Removed all FlatList pagination props (onEndReached, onEndReachedThreshold, etc) since drivers only view today's bills now, keeping the code highly performant and lightweight.
+
+### [2026-07-25 11:29:13] Filter Admin Global Daily Bills
+- Modified pp/routers/admin.py get_global_bills to enforce 	imestamp >= today (IST Timezone).
+- Admin Global Bills is now a true daily summary.
+- Left the specific Buyer Ledger untouched so admins can still see full history per buyer.
+
+### [2026-07-25 11:56:00] Buyer Ledger Infinite Pagination and Lifetime Totals
+- **Goal:** Add infinite scrolling to the Admin Buyer Ledger and preserve "Total Sales" and "Total Paid" calculations accurately without scanning the whole database.
+- **Action:**
+  - Added 	otal_lifetime_sales and 	otal_lifetime_paid to Buyer model.
+  - Backfilled historical totals for all existing buyers using a raw SQL python script.
+  - Updated driver.py (create_delivery, create_debt_collection) to increment buyer lifetime totals natively during transactions.
+  - Rewrote /buyers/{buyer_id}/ledger in dmin.py to support cursor and limit for paginated results.
+  - Updated useBuyers.ts and BuyersScreen.tsx to utilize React Query's useInfiniteQuery and FlatList for lazy loading of the ledger data.
+  - "Total Sales" and "Total Paid" cards now read 	otal_lifetime_sales and 	otal_lifetime_paid directly from the selectedBuyer object in O(1) time.
+
+### [2026-07-25 12:02:00] Bug Fixes: Global Bills and Types
+- **Goal:** Resolve Pyright errors and identify potential logical flaws.
+- **Action:**
+  - Added 	otal_lifetime_sales and 	otal_lifetime_paid to the Buyer interface in rontend/src/types/api.ts to fix TS compiler errors.
+  - Fixed a major logical bug in /driver/entries where global bills were erroneously filtered by current_user.id when an admin tried to view them. Now, it strictly filters only if the current_user.role == UserRole.DRIVER.
+
+### [2026-07-25 13:31:00] Dashboard Update
+- **Goal:** Limit recent activity on the admin dashboard to 4 items.
+- **Action:** Updated limit(20) to limit(4) in pp/routers/dashboard.py for /recent-activity.
+
+### [2026-07-25 14:15:00] Prevent Deletion of Buyers with History
+- **Goal:** Prevent buyers with billing history from being deleted.
+- **Action:** Added a check in DELETE /buyers/{buyer_id} in dmin.py to query if the buyer has any DeliveryBill records. If they do, it raises a 400 error. Also added an onError handler to handleDeleteBuyer in BuyersScreen.tsx to display this error alert to the user.
+
+### [2026-07-25 14:33:21] PDF Generation Rework
+- **Task**: Redesigned Sales Report PDF layout.
+- **Changes**: Removed all GST logic, modernized the header, added grouped row layout for bills, and simplified the total box in pp/services/reports/sales_pdf.py. Updated pp/routers/admin.py to match new schemas.
+
+### [2026-07-25 14:43:17] Grouped Sales Report by Buyer
+- **Task**: Updated the Sales PDF to group bills by buyer.
+- **Changes**: Introduced SalesPdfBuyerSummary data model. Updated pp/routers/admin.py to organize bills into these summaries and updated sales_pdf.py layout to include Buyer Subheaders and Subtotal rows.
+
+### [2026-07-25 09:55:00] Frontend Update for Dynamic Organization Fields
+- **User Request:** "ok in the user thermal printing bill the shop name and location and the mobile number" and "no i want to create an field for this in the super admin for each organazation..."
+- **Action Taken:** Updated frontend interfaces (pi.ts). Updated SuperAdminDashboard.tsx to include the new fields in the create organization modal. Updated ManageOrganizationScreen.tsx to handle viewing and editing these fields. Created a useDriverOrganization hook to fetch these details for drivers. Integrated these dynamic fields into BillsScreen.tsx, DebtCollectionScreen.tsx, and DeliveryScreen.tsx receipt payload, and updated printer-html.ts to replace the hardcoded values with the dynamically pulled organization details for thermal printing. Verified with TypeScript compiler.
+
+### [2026-07-25 10:15:00] Updated Bill Number Format
+- **User Request:** "i want the bill number to xxx-yyyy-mm-00000 to xxx-yyyy-00000000"
+- **Action Taken:** Modified generate_bill_number in driver.py to use a yearly sequence (ill_prefix_YYYY) instead of monthly, and updated the padding to 8 zero-padded digits ( 8d).

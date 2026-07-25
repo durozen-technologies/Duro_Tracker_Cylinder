@@ -1,7 +1,7 @@
 from uuid import UUID
 
-from sqlalchemy import Boolean, Enum, ForeignKey, Integer, Numeric, String, CheckConstraint
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import Boolean, CheckConstraint, Enum, Integer, Numeric, String
+from sqlalchemy.orm import Mapped, mapped_column
 
 from ..core.ids import UUID_SQL_TYPE, uuid7
 from ..db.database import Base

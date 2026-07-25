@@ -1,9 +1,9 @@
-from typing import Any
 import json
 import logging
 import time
 from collections.abc import AsyncGenerator
 from pathlib import Path
+from typing import Any
 
 from sqlalchemy import MetaData, event, text
 from sqlalchemy.engine import URL

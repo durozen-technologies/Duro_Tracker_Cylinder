@@ -1,16 +1,15 @@
 """Tenant-only SQLAlchemy metadata tools."""
 
 from __future__ import annotations
+
 from contextlib import contextmanager
-from typing import Iterator
+from typing import Any, Iterator
 
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy import text
 from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
 from sqlalchemy.engine import Connection
 
-
-from typing import Iterator, Any
 
 @contextmanager
 def _reuse_public_pg_enums(connection: Connection | Any) -> Iterator[None]:
@@ -44,9 +43,9 @@ def _reuse_public_pg_enums(connection: Connection | Any) -> Iterator[None]:
 
 from sqlalchemy.orm import Session
 
+
 def create_tenant_schema_and_tables(session: Session, schema_name: str) -> None:
     connection = session.connection()
-    import app.models  # Ensure all models are registered in Base.metadata
     from app.db.database import Base
     from app.db.tenant_schema import assert_safe_schema_name
 

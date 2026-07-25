@@ -6,10 +6,9 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from uuid import UUID
 
-from sqlalchemy import select, text
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import get_settings
 from app.db.tenant_context_var import (
     reset_active_tenant_schema,
     set_active_tenant_schema,

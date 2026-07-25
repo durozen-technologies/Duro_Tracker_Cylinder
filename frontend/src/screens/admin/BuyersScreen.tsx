@@ -29,7 +29,14 @@ export default function BuyersScreen() {
   
   const { data: items = [] } = useItems();
   
-  const { data: buyerLedgerData = [], isLoading: isLedgerLoading, refetch: refetchLedger, isRefetching: isLedgerRefetching } = useBuyerLedger(selectedBuyer?.id);
+  const { 
+    data: buyerLedgerData = [], 
+    isLoading: isLedgerLoading, 
+    refetch: refetchLedger, 
+    isRefetching: isLedgerRefetching,
+    hasNextPage: hasNextLedgerPage,
+    fetchNextPage: fetchNextLedgerPage
+  } = useBuyerLedger(selectedBuyer?.id);
 
   useEffect(() => {
     refetchBuyers();
@@ -109,10 +116,6 @@ export default function BuyersScreen() {
         name: editName.trim(),
         phone: editPhone.trim(),
         address: editAddress.trim(),
-        balance_pending: parseFloat(editFinBal) || 0,
-        inventory: Object.entries(editInventory)
-          .map(([item_id, cylinders_pending]) => ({ item_id, cylinders_pending: parseInt(cylinders_pending) || 0 }))
-          .filter(inv => inv.cylinders_pending > 0),
       }
     }, {
       onSuccess: () => {
@@ -124,10 +127,6 @@ export default function BuyersScreen() {
             name: editName.trim(),
             phone: editPhone.trim(),
             address: editAddress.trim(),
-            balance_pending: parseFloat(editFinBal) || 0,
-            inventory: Object.entries(editInventory)
-              .map(([item_id, cylinders_pending]) => ({ item_id, cylinders_pending: parseInt(cylinders_pending) || 0 }))
-              .filter(inv => inv.cylinders_pending > 0),
           } : null);
         }
       }
@@ -139,7 +138,12 @@ export default function BuyersScreen() {
     deleteBuyer.mutate(editBuyerId, {
       onSuccess: () => {
         setIsEditModalOpen(false);
-        setSelectedBuyer(null);
+        if (selectedBuyer?.id === editBuyerId) {
+          setSelectedBuyer(null);
+        }
+      },
+      onError: (err: any) => {
+        Alert.alert("Cannot Delete", err.response?.data?.detail || "An error occurred while deleting the buyer.");
       }
     });
   };
@@ -184,7 +188,7 @@ export default function BuyersScreen() {
         <View className="p-4 flex flex-row justify-between items-start">
           <View className="flex-1 pr-4">
             <Text className="text-base font-bold text-slate-900 tracking-tight" numberOfLines={1}>
-              {item.bill_number ? `Bill #${item.bill_number}` : `Ref: ${item.id?.substring(0,8) || '-'}`}
+              {item.bill_number ? `Bill No : ${item.bill_number}` : `Ref: ${item.id?.substring(0,8) || '-'}`}
             </Text>
             <Text className="text-xs font-medium text-slate-500 mt-1">{formattedDate}</Text>
           </View>
@@ -315,7 +319,7 @@ export default function BuyersScreen() {
               </View>
               <View>
                 <Text className="text-xl font-mono tracking-tight font-bold text-slate-900">
-                  ₹{buyerLedgerData.filter(item => item.type === 'bill').reduce((sum, item) => sum + (item.amount || 0), 0).toLocaleString()}
+                  ₹{(selectedBuyer?.total_lifetime_sales || 0).toLocaleString()}
                 </Text>
               </View>
             </Pressable>
@@ -325,11 +329,11 @@ export default function BuyersScreen() {
               className="flex-1 bg-white rounded-xl border border-gray-200 p-4 active:bg-gray-50"
             >
               <View className="mb-2">
-                <Text className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Collections</Text>
+                <Text className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Paid</Text>
               </View>
               <View>
                 <Text className="text-xl font-mono tracking-tight font-bold text-slate-900">
-                  ₹{buyerLedgerData.filter(item => item.type === 'payment').reduce((sum, item) => sum + (item.paid || 0), 0).toLocaleString()}
+                  ₹{(selectedBuyer?.total_lifetime_paid || 0).toLocaleString()}
                 </Text>
               </View>
             </Pressable>
@@ -637,32 +641,7 @@ export default function BuyersScreen() {
                 </View>
               </View>
 
-              <View className="h-px bg-gray-200 mb-6" />
 
-              <View className="mb-4">
-                <Text className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Opening Balances</Text>
-                <View className="flex flex-row gap-4">
-                  <View className="flex-1">
-                    <Text className="text-sm font-medium text-slate-700 mb-1">Financial Balance (₹)</Text>
-                    <TextInput value={editFinBal} onChangeText={setEditFinBal} keyboardType="numeric" placeholder="0" className="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm font-mono" />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-sm font-medium text-slate-700 mb-2">Cylinder Balances (Empties)</Text>
-                    {items.map(item => (
-                      <View key={item.id} className="flex flex-row items-center justify-between mb-2">
-                        <Text className="text-xs text-slate-600 w-1/2">{item.name}</Text>
-                        <TextInput 
-                          value={editInventory[item.id] || ''} 
-                          onChangeText={(val) => setEditInventory(prev => ({...prev, [item.id]: val}))} 
-                          keyboardType="numeric" 
-                          placeholder="0" 
-                          className="w-1/2 rounded-lg border-gray-300 border px-2 py-1 text-xs font-mono" 
-                        />
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              </View>
 
               <View className="flex flex-row justify-between mt-6 mb-4 gap-3">
                 <Pressable onPress={handleDeleteBuyer} disabled={deleteBuyer.isPending} className="px-4 py-2.5 bg-rose-50 border border-rose-100 rounded-lg flex-1 items-center justify-center">
@@ -731,14 +710,22 @@ export default function BuyersScreen() {
                 <X size={20} color="#475569" />
               </Pressable>
             </View>
-            <ScrollView showsVerticalScrollIndicator={true} className="flex-1 bg-slate-50 px-4 pt-4">
-              <View className="flex flex-col pb-10">
-                {buyerLedgerData.filter(row => row.type === 'bill').map((row, i) => <React.Fragment key={i}>{renderLedgerRow({item: row})}</React.Fragment>)}
-                {buyerLedgerData.filter(row => row.type === 'bill').length === 0 && (
-                  <Text className="text-center text-slate-500 py-8">No sales history found.</Text>
-                )}
-              </View>
-            </ScrollView>
+            <View className="flex-1 bg-slate-50">
+              <FlatList
+                data={buyerLedgerData.filter(row => row.type === 'bill')}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={({ item }) => <React.Fragment>{renderLedgerRow({item})}</React.Fragment>}
+                contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+                onEndReached={() => {
+                  if (hasNextLedgerPage && !isLedgerRefetching) {
+                    fetchNextLedgerPage();
+                  }
+                }}
+                onEndReachedThreshold={0.5}
+                ListEmptyComponent={<Text className="text-center text-slate-500 py-8">No sales history found.</Text>}
+                ListFooterComponent={isLedgerRefetching ? <Text className="text-center py-4 text-slate-500">Loading...</Text> : null}
+              />
+            </View>
           </View>
         </View>
       </Modal>
@@ -753,14 +740,22 @@ export default function BuyersScreen() {
                 <X size={20} color="#475569" />
               </Pressable>
             </View>
-            <ScrollView showsVerticalScrollIndicator={true} className="flex-1 bg-slate-50 px-4 pt-4">
-              <View className="flex flex-col pb-10">
-                {buyerLedgerData.filter(row => row.type === 'payment').map((row, i) => <React.Fragment key={i}>{renderLedgerRow({item: row})}</React.Fragment>)}
-                {buyerLedgerData.filter(row => row.type === 'payment').length === 0 && (
-                  <Text className="text-center text-slate-500 py-8">No collections history found.</Text>
-                )}
-              </View>
-            </ScrollView>
+            <View className="flex-1 bg-slate-50">
+              <FlatList
+                data={buyerLedgerData.filter(row => row.type === 'payment')}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={({ item }) => <React.Fragment>{renderLedgerRow({item})}</React.Fragment>}
+                contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+                onEndReached={() => {
+                  if (hasNextLedgerPage && !isLedgerRefetching) {
+                    fetchNextLedgerPage();
+                  }
+                }}
+                onEndReachedThreshold={0.5}
+                ListEmptyComponent={<Text className="text-center text-slate-500 py-8">No collections history found.</Text>}
+                ListFooterComponent={isLedgerRefetching ? <Text className="text-center py-4 text-slate-500">Loading...</Text> : null}
+              />
+            </View>
           </View>
         </View>
       </Modal>

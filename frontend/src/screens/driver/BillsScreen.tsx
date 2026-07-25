@@ -12,6 +12,7 @@ import { usePrinterStore } from '../../store/printer-store';
 import { DeliveryReceiptData, DeliveryReceiptItem } from '../../utils/printer';
 import { format } from 'date-fns';
 import { useDriverItems } from '../../hooks/useItems';
+import { useDriverOrganization } from '../../hooks/useDrivers';
 import { useAuth } from '../../context/AuthContext';
 import PrinterSettingsModal from '../../components/PrinterSettingsModal';
 import { BillCard } from '../../components/BillCard';
@@ -27,6 +28,7 @@ export default function BillsScreen() {
   const { receiptImagePrintBridge, startReceiptImagePrintJob } = useReceiptImagePrintJob();
   const preferredPrinter = usePrinterStore((state) => state.preferredPrinter);
   const { data: itemsCatalog = [] } = useDriverItems();
+  const { data: organization } = useDriverOrganization();
 
   const handleRefresh = useCallback(() => {
     queryClient.resetQueries();
@@ -126,10 +128,12 @@ export default function BillsScreen() {
       receipt_type: isPayment ? 'PAYMENT' : 'DELIVERY',
       receipt_number: item.bill_number || item.id.split('-')[0].toUpperCase(),
       date: item.timestamp,
-      agency_name: "Sree Hari Agencies",
-      agency_address: "Namakkal",
+      agency_name: organization?.name || "Agency Name",
+      agency_address: organization?.address || "",
+      agency_mobile: organization?.phone || "",
       buyer_name: item.buyer?.name || item.adhoc_buyer_name || 'Unknown',
       buyer_address: item.buyer?.address || "",
+      buyer_phone: item.buyer?.phone || "",
       opening_balance: openingBalance,
       items: receiptItems,
       total_bill: item.total_bill_amount,

@@ -93,9 +93,9 @@ export function buildReceiptExportPayload(data: DeliveryReceiptData): ReceiptExp
 
   return {
     isTestReceipt,
-    companyName: isTestReceipt ? data.agency_name || "" : data.agency_name || "Sree Hari Agencies",
-    shopName: isTestReceipt ? data.agency_address || "" : data.agency_address || "Namakkal",
-    mobileText: isTestReceipt ? (data.agency_mobile || "") : `Mobile: ${data.agency_mobile || "N/A"}`,
+    companyName: data.agency_name || "",
+    shopName: data.agency_address || "",
+    mobileText: data.agency_mobile ? `Mobile: ${data.agency_mobile}` : "",
     receiptTitleText: isTestReceipt ? undefined : (isPayment ? "PAYMENT RECEIPT" : undefined),
     receiptNumberText: isTestReceipt ? "" : `${isPayment ? 'Receipt No' : 'Bill No'}: ${data.receipt_number}`,
     dateText: isTestReceipt ? `Date & Time: ${format(new Date(data.date), "dd-MMM-yyyy hh:mm a")}` : `Date: ${format(new Date(data.date), "dd-MMM-yyyy hh:mm a")}`,

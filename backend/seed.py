@@ -1,13 +1,13 @@
 import asyncio
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 
-from app.db.database import Base
-from app.models.user import User
-from app.models.organization import Organization
-from app.models.enums import UserRole
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
 from app.core.security import get_password_hash
+from app.models.enums import UserRole
+from app.models.organization import Organization
+from app.models.user import User
+
 
 async def main():
     engine = create_async_engine("postgresql+asyncpg://postgres:root@localhost:5432/Duro_Tracker")

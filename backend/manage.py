@@ -2,10 +2,12 @@ import asyncio
 import sys
 
 from sqlalchemy import select
-from app.db.database import get_session_local
-from app.models.user import User
-from app.models.enums import UserRole
+
 from app.core.security import get_password_hash
+from app.db.database import get_session_local
+from app.models.enums import UserRole
+from app.models.user import User
+
 
 async def seed_super_admin(username, password):
     async with get_session_local()() as session:

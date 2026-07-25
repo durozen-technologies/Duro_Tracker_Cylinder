@@ -1,9 +1,12 @@
 import os
-from sqlalchemy import create_engine, text
-from alembic.config import Config
+
 from alembic import command
-from app.db.tenant_schema import build_schema_name
+from alembic.config import Config
+from sqlalchemy import create_engine, text
+
 from app.core.config import Settings
+from app.db.tenant_schema import build_schema_name
+
 
 def main():
     settings = Settings()

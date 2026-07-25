@@ -9,8 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.security import decode_access_token
-from app.db.session import get_platform_db, get_db_for_org
-from app.models import Organization, User, UserRole
+from app.db.session import get_db_for_org, get_platform_db
+from app.models import User, UserRole
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -65,7 +65,8 @@ async def get_current_active_user(
     return current_user
 
 
-from typing import Coroutine, Any
+from typing import Any, Coroutine
+
 
 def require_roles(*roles: UserRole) -> Callable[..., Coroutine[Any, Any, User]]:
     async def dependency(current_user: User = Depends(get_current_active_user)) -> User:

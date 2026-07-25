@@ -1,4 +1,3 @@
-import asyncio
 import os
 import uuid
 from collections.abc import AsyncGenerator
@@ -6,11 +5,10 @@ from collections.abc import AsyncGenerator
 # Override database URL for tests BEFORE importing any app modules
 os.environ["DATABASE_URL"] = "postgresql+asyncpg://postgres:root@localhost:5432/Duro_Tracker_Test"
 
-import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.config import get_settings
 from app.core.security import create_access_token
@@ -18,6 +16,7 @@ from app.db.database import Base
 from app.main import app
 from app.models import Organization, User
 from app.models.enums import UserRole
+
 
 @pytest_asyncio.fixture
 async def db_engine():
@@ -56,8 +55,8 @@ async def db(db_engine) -> AsyncGenerator[AsyncSession, None]:
 
 @pytest_asyncio.fixture
 async def client(db) -> AsyncGenerator[AsyncClient, None]:
-    from app.db.session import get_platform_db
     from app.auth.dependencies import get_tenant_db
+    from app.db.session import get_platform_db
     
     app.dependency_overrides[get_platform_db] = lambda: db
     app.dependency_overrides[get_tenant_db] = lambda: db

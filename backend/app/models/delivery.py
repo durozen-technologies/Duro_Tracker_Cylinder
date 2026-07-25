@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, Index
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..core.ids import UUID_SQL_TYPE, uuid7
@@ -9,7 +9,6 @@ from ..db.database import Base
 from .base import BaseModelMixin
 
 
-from typing import TYPE_CHECKING
 class DeliveryBill(Base, BaseModelMixin):
     __tablename__ = "delivery_bills"
     __table_args__ = (
@@ -36,6 +35,9 @@ class DeliveryBill(Base, BaseModelMixin):
     # Financial snapshots
     opening_balance: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
     closing_balance: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+    
+    # Cylinder snapshot
+    closing_cylinders: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     
     timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 

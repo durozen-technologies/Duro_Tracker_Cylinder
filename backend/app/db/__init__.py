@@ -4,8 +4,8 @@ from .database import (
     get_engine,
     get_session_local,
 )
-from .session import get_platform_db, get_db_for_org
 from .schema_guards import UUID_IDENTIFIER_COLUMNS
+from .session import get_db_for_org, get_platform_db
 from .startup import (
     initialize_database,
     run_database_startup_tasks,

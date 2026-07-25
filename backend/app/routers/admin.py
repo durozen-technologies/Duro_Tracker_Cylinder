@@ -1,24 +1,34 @@
+import datetime
 import uuid
-from typing import Annotated
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
-from typing import Optional
-from sqlalchemy import select, func, and_, or_
-from sqlalchemy.orm import selectinload
-from sqlalchemy.ext.asyncio import AsyncSession
+from pydantic import BaseModel
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
-from app.auth.dependencies import require_tenant_admin, get_tenant_db, get_platform_db
+from app.auth.dependencies import get_platform_db, get_tenant_db, require_tenant_admin
 from app.core.security import get_password_hash
-from app.models import Buyer, Item, User, Organization, PurchaseBill, PurchaseEntry, Provider, DeliveryBill, DeliveryItem
+from app.models import (
+    Buyer,
+    DeliveryBill,
+    DeliveryItem,
+    Item,
+    Organization,
+    Provider,
+    PurchaseBill,
+    PurchaseEntry,
+    User,
+)
 from app.models.enums import UserRole
 from app.schemas.buyer import BuyerCreate, BuyerOut, BuyerUpdate
 from app.schemas.item import ItemCreate, ItemOut, ItemUpdate
-from app.schemas.user import UserCreate, UserOut, UserUpdate
 from app.schemas.organization import OrganizationOut
-from pydantic import BaseModel
-import datetime
+from app.schemas.user import UserCreate, UserOut, UserUpdate
+
 
 class GlobalBillOut(BaseModel):
     id: uuid.UUID
@@ -177,69 +187,103 @@ async def list_buyers(
 async def get_global_bills(
     db: AsyncSession = Depends(get_tenant_db),
 ):
-    from sqlalchemy.orm import joinedload, selectinload
-    from app.models import DeliveryBill
-    result = await db.scalars(
-        select(DeliveryBill)
-        .options(joinedload(DeliveryBill.buyer).selectinload(Buyer.inventory), selectinload(DeliveryBill.items))
+    
+    import zoneinfo
+    from datetime import datetime
+    ist_tz = zoneinfo.ZoneInfo('Asia/Kolkata')
+    now_ist = datetime.now(ist_tz)
+    today = datetime(now_ist.year, now_ist.month, now_ist.day, tzinfo=ist_tz)
+
+    query = (
+        select(
+            DeliveryBill.id,
+            DeliveryBill.bill_number,
+            DeliveryBill.timestamp,
+            DeliveryBill.total_bill_amount,
+            DeliveryBill.adhoc_buyer_name,
+            Buyer.name.label("buyer_name"),
+            func.coalesce(func.sum(DeliveryItem.full_delivered), 0).label("total_full"),
+            func.coalesce(func.sum(DeliveryItem.empty_received), 0).label("total_empty")
+        )
+        .outerjoin(Buyer, DeliveryBill.buyer_id == Buyer.id)
+        .outerjoin(DeliveryItem, DeliveryBill.id == DeliveryItem.delivery_bill_id)
         .where(DeliveryBill.total_bill_amount > 0)
+        .where(DeliveryBill.timestamp >= today)
+        .group_by(
+            DeliveryBill.id,
+            DeliveryBill.bill_number,
+            DeliveryBill.timestamp,
+            DeliveryBill.total_bill_amount,
+            DeliveryBill.adhoc_buyer_name,
+            Buyer.name
+        )
         .order_by(DeliveryBill.timestamp.desc())
-        .limit(20)
+        .limit(200) # Increased limit slightly since we are filtering by today
     )
+    
+    result = await db.execute(query)
     entries = result.all()
     
     bills = []
-    for e in entries:
-        buyer_name = e.buyer.name if e.buyer else e.adhoc_buyer_name or "Unknown"
-        total_full = sum(i.full_delivered for i in e.items)
-        total_empty = sum(i.empty_received for i in e.items)
+    for row in entries:
+        buyer_name = row.buyer_name if row.buyer_name else row.adhoc_buyer_name or "Unknown"
         bills.append(
             GlobalBillOut(
-                id=e.id,
-                bill_number=e.bill_number,
-                time=e.timestamp.isoformat(),
+                id=row.id,
+                bill_number=row.bill_number,
+                time=row.timestamp.isoformat(),
                 buyer=buyer_name,
-                fullGiven=total_full,
-                emptyCollected=total_empty,
-                total=float(e.total_bill_amount)
+                fullGiven=row.total_full,
+                emptyCollected=row.total_empty,
+                total=float(row.total_bill_amount)
             )
         )
     return bills
 
 
-@router.get("/buyers/{buyer_id}/ledger", response_model=list[LedgerEntryOut])
+class PaginatedLedgerOut(BaseModel):
+    items: list[LedgerEntryOut]
+    next_cursor: uuid.UUID | None
+
+@router.get("/buyers/{buyer_id}/ledger", response_model=PaginatedLedgerOut)
 async def get_buyer_ledger(
     buyer_id: uuid.UUID,
+    cursor: uuid.UUID | None = None,
+    limit: int = 20,
     db: AsyncSession = Depends(get_tenant_db),
 ):
-    from app.models import DeliveryBill
     from sqlalchemy.orm import selectinload
+
+    from app.models import Buyer
     
-    # Get all entries for the buyer in chronological order
-    result = await db.scalars(
+    # Get the buyer to know the *current* actual balances
+    buyer = await db.get(Buyer, buyer_id, options=[selectinload(Buyer.inventory)])
+    if not buyer:
+        return {"items": [], "next_cursor": None}
+
+    # Get the entries for the buyer in reverse chronological order
+    query = (
         select(DeliveryBill)
         .options(selectinload(DeliveryBill.items))
         .where(DeliveryBill.buyer_id == buyer_id)
-        .order_by(DeliveryBill.timestamp.asc())
     )
-    entries = result.all()
+
+    if cursor:
+        query = query.where(DeliveryBill.id < cursor)
+        
+    query = query.order_by(DeliveryBill.id.desc()).limit(limit)
+    
+    result = await db.scalars(query)
+    entries = result.unique().all()
     
     ledger = []
-    run_fin = 0.0
-    run_cyl = 0
     
     for e in entries:
         paid = float(e.cash_collected + e.upi_collected)
         bill_amt = float(e.total_bill_amount)
         
-        # Financial impact: bill increases debt, paid decreases debt
-        run_fin += (bill_amt - paid)
-        
         total_full = sum(i.full_delivered for i in e.items)
         total_empty = sum(i.empty_received for i in e.items)
-        
-        # Cylinder impact: full_delivered increases debt, empty_received decreases debt
-        run_cyl += (total_full - total_empty)
         
         etype = 'bill' if total_full > 0 else 'payment'
         
@@ -253,13 +297,14 @@ async def get_buyer_ledger(
                 emptyCollected=total_empty,
                 amount=bill_amt,
                 paid=paid,
-                finRunBal=run_fin,
-                cylRunBal=run_cyl
+                finRunBal=float(e.closing_balance) if e.closing_balance is not None else 0.0,
+                cylRunBal=int(getattr(e, 'closing_cylinders', 0))
             )
         )
         
-    # Return reverse chronological order for UI
-    return ledger[::-1]
+    next_cursor = entries[-1].id if len(entries) == limit else None
+        
+    return {"items": ledger, "next_cursor": next_cursor}
 
 @router.put("/buyers/{buyer_id}", response_model=BuyerOut)
 async def update_buyer(
@@ -268,7 +313,7 @@ async def update_buyer(
     db: AsyncSession = Depends(get_tenant_db),
 ):
     from sqlalchemy.orm import selectinload
-    from app.models.buyer import BuyerInventory
+
     buyer = await db.get(Buyer, buyer_id, options=[selectinload(Buyer.inventory)])
     if not buyer:
         raise HTTPException(status_code=404, detail="Buyer not found")
@@ -285,19 +330,6 @@ async def update_buyer(
         buyer.is_active = buyer_in.is_active
     if buyer_in.price_per_kg is not None:
         buyer.price_per_kg = buyer_in.price_per_kg
-    if buyer_in.balance_pending is not None:
-        buyer.balance_pending = buyer_in.balance_pending
-    if buyer_in.inventory is not None:
-        # Update existing inventory or add new ones
-        existing_inventory = {inv.item_id: inv for inv in buyer.inventory}
-        for new_inv in buyer_in.inventory:
-            if new_inv.item_id in existing_inventory:
-                existing_inventory[new_inv.item_id].cylinders_pending = new_inv.cylinders_pending
-            else:
-                buyer.inventory.append(BuyerInventory(item_id=new_inv.item_id, cylinders_pending=new_inv.cylinders_pending))
-        # Remove ones not in the incoming list
-        incoming_ids = {inv.item_id for inv in buyer_in.inventory}
-        buyer.inventory = [inv for inv in buyer.inventory if inv.item_id in incoming_ids]
 
     await db.commit()
     await db.refresh(buyer, ['inventory'])
@@ -312,6 +344,13 @@ async def delete_buyer(
     buyer = await db.get(Buyer, buyer_id)
     if not buyer:
         raise HTTPException(status_code=404, detail="Buyer not found")
+        
+    has_history = await db.scalar(
+        select(DeliveryBill).where(DeliveryBill.buyer_id == buyer_id).limit(1)
+    )
+    if has_history:
+        raise HTTPException(status_code=400, detail="Cannot delete buyer with an existing billing history. Please disable the buyer instead.")
+        
     await db.delete(buyer)
     await db.commit()
 
@@ -416,9 +455,14 @@ async def generate_sales_pdf_endpoint(
     current_user: User = Depends(require_tenant_admin()),
     platform_db: AsyncSession = Depends(get_platform_db),
 ):
-    from app.services.reports.sales_pdf import generate_sales_pdf, SalesPdfData, SalesPdfBillData, SalesPdfItemData
-    from app.models import DeliveryBill, DeliveryItem, Buyer
-    import datetime
+    from app.models import Buyer, DeliveryItem
+    from app.services.reports.sales_pdf import (
+        SalesPdfBillData,
+        SalesPdfData,
+        SalesPdfItemData,
+        SalesPdfBuyerSummary,
+        generate_sales_pdf,
+    )
 
     # Base query
     stmt = select(DeliveryBill).options(
@@ -506,41 +550,63 @@ async def generate_sales_pdf_endpoint(
 
     # Fetch Organization info
     org_name = "Gas Agency"
+    org_address = ""
+    org_phone = ""
     from app.models.organization import Organization
     org_stmt = select(Organization).where(Organization.id == current_user.organization_id)
     org_res = await platform_db.execute(org_stmt)
     org = org_res.scalar_one_or_none()
     if org:
         org_name = org.name
+        org_address = org.address or ""
+        org_phone = org.phone or ""
 
-    sales_bills = []
+    # Group bills by buyer
+    buyer_groups = {}
     for b in bills:
-        items_data = []
-        for e in b.items:
-            items_data.append(SalesPdfItemData(
-                item_name=e.item.name,
-                hsn="",
-                qty=e.full_delivered,
-                rate=float(e.unit_price_at_delivery),
-                gst_percent=0.0,
-                amount=float(e.line_total_amount)
+        b_name = b.buyer.name if b.buyer else "Unknown Buyer"
+        if b_name not in buyer_groups:
+            buyer_groups[b_name] = []
+        buyer_groups[b_name].append(b)
+        
+    buyer_summaries = []
+    
+    # Sort buyer names alphabetically
+    for b_name in sorted(buyer_groups.keys()):
+        sales_bills = []
+        buyer_total = 0.0
+        
+        for b in buyer_groups[b_name]:
+            items_data = []
+            for e in b.items:
+                items_data.append(SalesPdfItemData(
+                    item_name=e.item.name,
+                    qty=e.full_delivered,
+                    rate=float(e.unit_price_at_delivery),
+                    amount=float(e.line_total_amount)
+                ))
+                buyer_total += float(e.line_total_amount)
+                
+            sales_bills.append(SalesPdfBillData(
+                date=b.timestamp.strftime("%d-%m-%Y"),
+                bill_no=b.bill_number or str(b.id)[:8],
+                items=items_data
             ))
-        sales_bills.append(SalesPdfBillData(
-            date=b.timestamp.strftime("%d-%m-%Y"),
-            bill_no=b.bill_number or str(b.id)[:8],
-            items=items_data
+            
+        buyer_summaries.append(SalesPdfBuyerSummary(
+            buyer_name=b_name,
+            bills=sales_bills,
+            total_amount=buyer_total
         ))
 
     pdf_data = SalesPdfData(
         org_name=org_name,
-        org_gstin="",
-        org_address="",
-        org_phone="",
-        buyer_name=buyer_name,
-        buyer_gstin=buyer_gstin,
+        org_address=org_address,
+        org_phone=org_phone,
+        buyer_name=buyer_name if buyer_name != "Multiple Buyers" else "Multiple Buyers",
         buyer_phone=buyer_phone,
         date_display_text=f"Sales Report: {date_display_text}",
-        bills=sales_bills
+        buyer_summaries=buyer_summaries
     )
 
     pdf_buffer = generate_sales_pdf(pdf_data)
@@ -549,7 +615,7 @@ async def generate_sales_pdf_endpoint(
     return StreamingResponse(
         pdf_buffer,
         media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename=Sales_Report.pdf"}
+        headers={"Content-Disposition": "attachment; filename=Sales_Report.pdf"}
     )
 
 
@@ -563,9 +629,12 @@ async def generate_purchase_pdf_endpoint(
     current_user: User = Depends(require_tenant_admin()),
     platform_db: AsyncSession = Depends(get_platform_db),
 ):
-    from app.services.reports.purchase_pdf import generate_purchase_pdf, PurchasePdfData, PurchasePdfBillData, PurchasePdfItemData
-    from app.models import PurchaseBill, PurchaseEntry, Provider
-    import datetime
+    from app.services.reports.purchase_pdf import (
+        PurchasePdfBillData,
+        PurchasePdfData,
+        PurchasePdfItemData,
+        generate_purchase_pdf,
+    )
 
     # Base query
     stmt = select(PurchaseBill).options(

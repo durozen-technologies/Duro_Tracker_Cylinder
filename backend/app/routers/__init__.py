@@ -1,5 +1,6 @@
 from fastapi import APIRouter
-from . import auth, super_admin, admin, driver, dashboard, purchase
+
+from . import admin, auth, dashboard, driver, purchase, super_admin
 
 api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])

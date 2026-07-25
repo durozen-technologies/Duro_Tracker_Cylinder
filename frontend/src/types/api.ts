@@ -63,6 +63,8 @@ export interface Buyer {
   address?: string;
   is_active: boolean;
   balance_pending: number;
+  total_lifetime_sales: number;
+  total_lifetime_paid: number;
   inventory: InventoryItem[];
   price_per_kg?: number;
 }
@@ -150,12 +152,20 @@ export interface Organization {
   id: string;
   name: string;
   max_users: number;
+  address?: string | null;
+  phone?: string | null;
+  bill_prefix_sales: string;
+  bill_prefix_collection: string;
   created_at?: string;
 }
 
 export interface OrganizationCreate {
   name: string;
   max_users: number;
+  address?: string | null;
+  phone?: string | null;
+  bill_prefix_sales?: string;
+  bill_prefix_collection?: string;
 }
 
 export interface UserCreate {
@@ -177,6 +187,10 @@ export interface User {
 export interface OrganizationUpdate {
   name?: string;
   max_users?: number;
+  address?: string | null;
+  phone?: string | null;
+  bill_prefix_sales?: string | null;
+  bill_prefix_collection?: string | null;
 }
 
 export interface DeliveryBillCreate {

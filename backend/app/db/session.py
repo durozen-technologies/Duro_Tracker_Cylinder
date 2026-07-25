@@ -22,7 +22,8 @@ async def get_platform_db() -> AsyncGenerator[AsyncSession, None]:
             reset_active_tenant_schema(token)
 
 
-from app.db.database import get_engine, get_session_local
+from app.db.database import get_engine
+
 
 async def get_db_for_org(organization_id: UUID) -> AsyncGenerator[AsyncSession, None]:
     """Open a session scoped to a tenant schema."""

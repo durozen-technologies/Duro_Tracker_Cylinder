@@ -1,6 +1,7 @@
 """Normalize PostgreSQL SQLAlchemy URLs for async (asyncpg) or sync (psycopg) drivers."""
 
 from __future__ import annotations
+
 from typing import Any
 
 from sqlalchemy.engine import URL, make_url

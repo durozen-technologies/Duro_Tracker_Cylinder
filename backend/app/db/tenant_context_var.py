@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any
 from contextvars import ContextVar
+from typing import Any
 
 active_tenant_schema: ContextVar[str | None] = ContextVar("active_tenant_schema", default=None)
 
