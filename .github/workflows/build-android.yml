@@ -1,4 +1,4 @@
-name: Build Android Release APK
+name: Build Android APK
 
 on:
   push:
@@ -51,15 +51,15 @@ jobs:
         working-directory: ./frontend
         run: npx expo prebuild --platform android --clean
 
-      - name: Build Release APK with Gradle
+      - name: Build Installable APK with Gradle
         working-directory: ./frontend/android
         run: |
           chmod +x gradlew
-          ./gradlew :app:assembleRelease --no-daemon
+          ./gradlew :app:assembleDebug --no-daemon
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Duro-Tracker-Release-APK
-          path: frontend/android/app/build/outputs/apk/release/app-release.apk
+          name: Duro-Tracker-App-APK
+          path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 7
