@@ -23,7 +23,7 @@ from app.db.database import Base
 target_metadata = Base.metadata
 
 def include_object_public(object, name, type_, reflected, compare_to):
-    if type_ == "table" and name == "spatial_ref_sys":
+    if type_ == "table" and name in ("spatial_ref_sys", "alembic_version"):
         return False
     # Only include objects that are NOT in the 'tenant' schema
     if getattr(object, "schema", None) == "tenant":
@@ -31,6 +31,8 @@ def include_object_public(object, name, type_, reflected, compare_to):
     return True
 
 def include_object_tenant(object, name, type_, reflected, compare_to):
+    if type_ == "table" and name == "alembic_version":
+        return False
     # Only include objects that ARE in the 'tenant' schema
     if getattr(object, "schema", None) != "tenant":
         return False
