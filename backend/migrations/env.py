@@ -96,6 +96,7 @@ def do_run_migrations(connection: Connection, tenant_schemas: list[str]) -> None
             compare_type=True,
             include_schemas=False,
             include_object=include_object_public,
+            version_table_schema="public",
             version_locations=[public_version_loc],
         )
         with context.begin_transaction():
@@ -123,38 +124,32 @@ def do_run_migrations(connection: Connection, tenant_schemas: list[str]) -> None
                 context.run_migrations()
 
 
-async def run_async_migrations() -> None:
-    from sqlalchemy import text
-
+def run_migrations_online() -> None:
+    from sqlalchemy import text, engine_from_config
     from app.core.config import Settings
     from app.db.tenant_schema import build_schema_name
     
     settings = Settings()
     
     configuration = config.get_section(config.config_ini_section, {})
-    configuration["sqlalchemy.url"] = settings.database_url
+    # Strip +asyncpg to use the synchronous psycopg2 driver for migrations
+    configuration["sqlalchemy.url"] = settings.database_url.replace("+asyncpg", "")
     
-    connectable = async_engine_from_config(
+    connectable = engine_from_config(
         configuration,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
 
-    async with connectable.connect() as connection:
+    with connectable.connect() as connection:
         # Query active tenants (check if table exists to avoid aborting the transaction)
         tenant_schemas = []
-        if await connection.run_sync(lambda sync_conn: sync_conn.dialect.has_table(sync_conn, "organizations")):
-            result = await connection.execute(text("SELECT id FROM organizations"))
+        if connection.dialect.has_table(connection, "organizations"):
+            result = connection.execute(text("SELECT id FROM organizations"))
             tenant_schemas = [build_schema_name(row[0]) for row in result.fetchall()]
         
-        await connection.run_sync(do_run_migrations, tenant_schemas)
-        await connection.commit()
-
-    await connectable.dispose()
-
-
-def run_migrations_online() -> None:
-    asyncio.run(run_async_migrations())
+        do_run_migrations(connection, tenant_schemas)
+        connection.commit()
 
 
 def run_migrations_offline() -> None:
