@@ -1,4 +1,4 @@
-name: Build Android Debug APK
+name: Build Android Release APK
 
 on:
   push:
@@ -14,7 +14,7 @@ jobs:
     name: Build Android APK
     runs-on: ubuntu-latest
     env:
-      EXPO_PUBLIC_API_BASE_URL: "http://10.0.2.2:8000/api/v1"
+      EXPO_PUBLIC_API_URL: "https://durotracker.durozen.in/api/v1"
 
     steps:
       - name: Checkout repository
@@ -51,15 +51,15 @@ jobs:
         working-directory: ./frontend
         run: npx expo prebuild --platform android --clean
 
-      - name: Build Debug APK with Gradle
+      - name: Build Release APK with Gradle
         working-directory: ./frontend/android
         run: |
           chmod +x gradlew
-          ./gradlew :app:assembleDebug --no-daemon
+          ./gradlew :app:assembleRelease --no-daemon
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Duro-Tracker-Debug-APK
-          path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
+          name: Duro-Tracker-Release-APK
+          path: frontend/android/app/build/outputs/apk/release/app-release.apk
           retention-days: 7
