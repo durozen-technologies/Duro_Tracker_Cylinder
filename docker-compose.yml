@@ -28,23 +28,8 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://$${POSTGRES_USER:-postgres}:$${POSTGRES_PASSWORD:-postgres}@db:5432/$${POSTGRES_DB:-Duro_Tracker}
     command: sh -c "python run_migrations.py && /app/docker-gunicorn.sh"
-
-
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    depends_on:
-      - backend
-    env_file:
-      - .env
     ports:
-      - "8000:80"
-    volumes:
-      - ./caddy/Caddyfile.template:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
+      - "8000:8000"
 
 volumes:
   pgdata:
-  caddy_data:
-  caddy_config:
