@@ -51,15 +51,20 @@ jobs:
         working-directory: ./frontend
         run: npx expo prebuild --platform android --clean
 
-      - name: Build Installable APK with Gradle
+      - name: Force Release Build to use Debug Keystore
+        working-directory: ./frontend/android/app
+        run: |
+          sed -i 's/signingConfigs.release/signingConfigs.debug/g' build.gradle
+
+      - name: Build Release APK with Gradle
         working-directory: ./frontend/android
         run: |
           chmod +x gradlew
-          ./gradlew :app:assembleDebug --no-daemon
+          ./gradlew :app:assembleRelease --no-daemon
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Duro-Tracker-App-APK
-          path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
+          path: frontend/android/app/build/outputs/apk/release/app-release.apk
           retention-days: 7
