@@ -20,7 +20,6 @@ class DeliveryPdfItemData:
 @dataclass
 class DeliveryPdfData:
     org_name: str
-    org_gstin: str
     org_address: str
     org_phone: str
     
@@ -85,18 +84,11 @@ def generate_delivery_pdf(data: DeliveryPdfData) -> BytesIO:
         fontName='Helvetica', 
         fontSize=10,
     )
-    date_range_style = ParagraphStyle(
-        'DateRangeStyle', 
-        parent=styles['Normal'], 
-        fontName='Helvetica-Bold', 
-        fontSize=11, 
-        alignment=TA_CENTER,
-    )
     
     # 1. Company Header
     elements.append(Paragraph(data.org_name, title_style))
     elements.append(Paragraph(data.org_address, header_style))
-    elements.append(Paragraph(f"Phone : {data.org_phone} | GSTIN : {data.org_gstin}", header_style))
+    elements.append(Paragraph(f"Phone : {data.org_phone}", header_style))
     
     elements.append(Spacer(1, 10))
     # Horizontal line
@@ -191,17 +183,9 @@ def generate_delivery_pdf(data: DeliveryPdfData) -> BytesIO:
         ('LINEBELOW', (0,3), (1,3), 1, colors.HexColor('#cccccc')),
     ]))
     
-    # 5. Arrange summary and terms side-by-side
-    terms_text = """
-    <b>Terms & Conditions:</b><br/>
-    1. Goods once sold will not be taken back.<br/>
-    2. Subject to local jurisdiction.<br/>
-    3. Please return empty cylinders on time.
-    """
-    terms_paragraph = Paragraph(terms_text, styles['Normal'])
-    
+    # 5. Arrange summary
     bottom_layout_data = [
-        [terms_paragraph, "", summary_table]
+        ["", "", summary_table]
     ]
     bottom_layout = Table(bottom_layout_data, colWidths=[240, 10, 300])
     bottom_layout.setStyle(TableStyle([

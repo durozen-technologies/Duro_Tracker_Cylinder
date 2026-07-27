@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, ScrollView, Pressable, Modal, TextInput } from 'react-native';
+import { View, Text, ScrollView, Pressable, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Settings2, X, ChevronDown, RefreshCw } from 'lucide-react-native';
 import { useItems, useUpdateItem } from '../../hooks/useItems';
 import { useBuyers } from '../../hooks/useBuyers';
@@ -64,8 +65,9 @@ export default function InventoryScreen() {
   };
 
   return (
+    <SafeAreaView edges={['top']} className="flex-1 bg-gray-50">
     <View className="flex-1 bg-gray-50">
-      <ScrollView className="flex-1 p-4 pt-12">
+      <ScrollView className="flex-1 p-4">
         {/* Header */}
         <View className="flex flex-row justify-between items-start mb-6 mt-2">
           <View className="flex-1 mr-4">
@@ -194,6 +196,7 @@ export default function InventoryScreen() {
 
       {/* Adjust Stock Modal */}
       <Modal animationType="fade" transparent={true} visible={isModalOpen} onRequestClose={() => setIsModalOpen(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View className="flex-1 items-center justify-center p-4" style={{ backgroundColor: 'rgba(15, 23, 42, 0.5)' }}>
           <View className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
             <View className="flex flex-row items-center justify-between px-6 py-4 border-b border-gray-200">
@@ -306,7 +309,9 @@ export default function InventoryScreen() {
             </View>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
+    </SafeAreaView>
   );
 }

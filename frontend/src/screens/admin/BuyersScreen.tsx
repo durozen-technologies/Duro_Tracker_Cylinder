@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, Pressable, ScrollView, FlatList, Modal, TextInput, Alert } from 'react-native';
+import { View, Text, Pressable, ScrollView, FlatList, Modal, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Plus, X, Search, Store, ArrowLeft, Download, FileText, Receipt, Edit2, Trash2, RefreshCw, PackageOpen } from 'lucide-react-native';
 
 import { useBuyers, useCreateBuyer, useUpdateBuyer, useDeleteBuyer, useGlobalBills, useBuyerLedger, useGlobalBillsPaginated } from '../../hooks/useBuyers';
@@ -463,7 +464,7 @@ export default function BuyersScreen() {
           className="flex-1"
           data={globalBillsData}
           keyExtractor={(item, index) => item?.id ? item.id.toString() : index.toString()}
-          contentContainerStyle={{ paddingBottom: 40 }}
+          contentContainerStyle={{ paddingBottom: 100 }}
           showsVerticalScrollIndicator={false}
           onEndReached={() => {
             if (hasNextPage) {
@@ -486,7 +487,8 @@ export default function BuyersScreen() {
   );
 
   return (
-    <View className="flex-1 bg-gray-50 p-4 pt-12">
+    <SafeAreaView edges={['top']} className="flex-1 bg-gray-50">
+    <View className="flex-1 p-4">
       {/* Header & Tabs */}
         <View className="flex flex-col mb-4">
           <View className="flex flex-row justify-between items-start mb-4">
@@ -528,6 +530,7 @@ export default function BuyersScreen() {
 
         {/* Add Buyer Modal */}
         <Modal animationType="fade" transparent={true} visible={isModalOpen} onRequestClose={() => setIsModalOpen(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
           <View className="flex-1 items-center justify-center p-4" style={{ backgroundColor: 'rgba(15, 23, 42, 0.5)' }}>
             <View className="bg-white rounded-2xl w-full max-w-lg overflow-hidden max-h-[90%]">
               <View className="flex flex-row items-center justify-between px-6 py-4 border-b border-gray-200 bg-white">
@@ -602,10 +605,12 @@ export default function BuyersScreen() {
             </ScrollView>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Edit Buyer Modal */}
       <Modal animationType="fade" transparent={true} visible={isEditModalOpen} onRequestClose={() => setIsEditModalOpen(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View className="flex-1 items-center justify-center p-4" style={{ backgroundColor: 'rgba(15, 23, 42, 0.5)' }}>
           <View className="bg-white rounded-2xl w-full max-w-lg overflow-hidden max-h-[90%]">
             <View className="flex flex-row items-center justify-between px-6 py-4 border-b border-gray-200 bg-white">
@@ -656,10 +661,12 @@ export default function BuyersScreen() {
             </ScrollView>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Update Price Modal */}
       <Modal animationType="fade" transparent={true} visible={isPriceModalOpen} onRequestClose={() => setIsPriceModalOpen(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View className="flex-1 items-center justify-center p-4" style={{ backgroundColor: 'rgba(15, 23, 42, 0.5)' }}>
           <View className="bg-white rounded-[24px] w-full max-w-md overflow-hidden">
             <View className="flex flex-row items-center justify-between px-6 py-4 border-b border-gray-200">
@@ -698,10 +705,12 @@ export default function BuyersScreen() {
             </View>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Sales Modal */}
       <Modal animationType="slide" transparent={true} visible={isSalesModalOpen} onRequestClose={() => setIsSalesModalOpen(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View className="flex-1 bg-black/50 justify-end">
           <View className="bg-white rounded-t-3xl h-5/6 overflow-hidden">
             <View className="p-4 border-b border-gray-200 flex flex-row items-center justify-between bg-gray-50">
@@ -715,7 +724,7 @@ export default function BuyersScreen() {
                 data={buyerLedgerData.filter(row => row.type === 'bill')}
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={({ item }) => <React.Fragment>{renderLedgerRow({item})}</React.Fragment>}
-                contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+                contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
                 onEndReached={() => {
                   if (hasNextLedgerPage && !isLedgerRefetching) {
                     fetchNextLedgerPage();
@@ -728,10 +737,12 @@ export default function BuyersScreen() {
             </View>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Collections Modal */}
       <Modal animationType="slide" transparent={true} visible={isCollectionsModalOpen} onRequestClose={() => setIsCollectionsModalOpen(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View className="flex-1 bg-black/50 justify-end">
           <View className="bg-white rounded-t-3xl h-5/6 overflow-hidden">
             <View className="p-4 border-b border-gray-200 flex flex-row items-center justify-between bg-gray-50">
@@ -745,7 +756,7 @@ export default function BuyersScreen() {
                 data={buyerLedgerData.filter(row => row.type === 'payment')}
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={({ item }) => <React.Fragment>{renderLedgerRow({item})}</React.Fragment>}
-                contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+                contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
                 onEndReached={() => {
                   if (hasNextLedgerPage && !isLedgerRefetching) {
                     fetchNextLedgerPage();
@@ -758,7 +769,9 @@ export default function BuyersScreen() {
             </View>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
+    </SafeAreaView>
   );
 }

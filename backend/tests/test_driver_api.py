@@ -16,7 +16,6 @@ async def test_idempotent_delivery_entry(
     # 1. Create an item via admin API or DB directly to test against
     item = Item(
         name="19kg Commercial",
-        category="commercial",
         price=2000.0,
         initial_full=100,
         initial_empty=10,

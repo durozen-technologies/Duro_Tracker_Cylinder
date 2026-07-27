@@ -3,8 +3,7 @@
 }
 
 (tracker_api_upstream) {
-	reverse_proxy backend-1:8000 backend-2:8000 {
-		lb_policy round_robin
+	reverse_proxy backend:8000 {
 		health_uri /health
 		health_interval 10s
 		health_timeout 3s
@@ -70,19 +69,6 @@
 			import tracker_api_upstream
 		}
 
-		handle_path /rustfs/* {
-			@not_internal not remote_ip private_ranges
-			respond @not_internal "Forbidden" 403
-			reverse_proxy rustfs:9000 {
-				header_up Host {upstream_hostport}
-				transport http {
-					dial_timeout 30s
-					response_header_timeout 60s
-					read_timeout 60s
-					write_timeout 60s
-				}
-			}
-		}
 
 		handle {
 			import tracker_api_upstream

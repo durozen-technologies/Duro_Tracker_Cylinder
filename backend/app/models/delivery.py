@@ -13,6 +13,8 @@ class DeliveryBill(Base, BaseModelMixin):
     __tablename__ = "delivery_bills"
     __table_args__ = (
         Index("idx_delivery_pagination", "timestamp", "id"),
+        Index("idx_ledger_pagination", "buyer_id", "id"),
+        Index("idx_driver_pagination", "driver_id", "id"),
         {"schema": "tenant"}
     )
 

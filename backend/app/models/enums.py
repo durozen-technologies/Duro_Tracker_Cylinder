@@ -7,11 +7,6 @@ class UserRole(str, Enum):
     DRIVER = "driver"
 
 
-class ItemCategory(str, Enum):
-    COMMERCIAL = "commercial"
-    DOMESTIC = "domestic"
-    RETAIL = "retail"
-
 
 class BuyerType(str, Enum):
     COMMERCIAL = "commercial"

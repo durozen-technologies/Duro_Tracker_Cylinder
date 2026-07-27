@@ -34,7 +34,7 @@ async def get_dashboard_metrics(
     if not current_user.organization_id:
         raise HTTPException(status_code=403, detail="No organization")
         
-    org_id = current_user.organization_id
+
     
     import zoneinfo
     ist = zoneinfo.ZoneInfo("Asia/Kolkata")

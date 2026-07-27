@@ -1,9 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, Pressable, FlatList, Modal, TextInput, ActivityIndicator, ScrollView, Alert } from 'react-native';
+import { View, Text, Pressable, FlatList, Modal, TextInput, ActivityIndicator, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Plus, Edit2, X, PackageOpen, CheckCircle, PauseCircle, Trash2, RefreshCw } from 'lucide-react-native';
 import { useItems, useToggleItem, useCreateItem, useUpdateItem, useDeleteItem } from '../../hooks/useItems';
-import type { Item, ItemCategory } from '../../types/api';
+import type { Item } from '../../types/api';
 
 export default function ItemsScreen() {
   const { data: items = [], isLoading, refetch: refetchItems, isRefetching: isItemsRefetching } = useItems();
@@ -40,7 +41,7 @@ export default function ItemsScreen() {
     if (!newName.trim()) return;
     createItem.mutate({
       name: newName.trim(),
-      category: 'commercial',
+
       price: 0,
       capacity_kg: parseFloat(newCapacity) || 0,
       hsn_code: newHsnCode.trim() || undefined,
@@ -76,7 +77,7 @@ export default function ItemsScreen() {
       id: editId,
       data: {
         name: editName.trim(),
-        category: 'commercial',
+
         price: 0,
         capacity_kg: parseFloat(editCapacity) || 0,
         hsn_code: editHsnCode.trim() || undefined,
@@ -160,7 +161,8 @@ export default function ItemsScreen() {
   };
 
   return (
-    <View className="flex-1 bg-gray-50 p-4 pt-12">
+    <SafeAreaView edges={['top']} className="flex-1 bg-gray-50">
+    <View className="flex-1 p-4">
       {/* Header */}
       <View className="flex flex-row justify-between items-start mb-6">
         <View className="flex-1 mr-4">
@@ -189,7 +191,7 @@ export default function ItemsScreen() {
               <PackageOpen size={32} color="#94a3b8" />
             </View>
             <Text className="text-lg font-medium text-slate-900">No items found</Text>
-            <Text className="text-slate-500 text-sm mt-1 text-center max-w-xs">You haven't added any cylinder variants yet. Click the button above to get started.</Text>
+            <Text className="text-slate-500 text-sm mt-1 text-center max-w-xs">You haven&apos;t added any cylinder variants yet. Click the button above to get started.</Text>
           </View>
         ) : (
           <FlatList
@@ -215,6 +217,7 @@ export default function ItemsScreen() {
 
       {/* Add Item Modal */}
       <Modal animationType="fade" transparent={true} visible={isModalOpen} onRequestClose={() => setIsModalOpen(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View className="flex-1 items-center justify-center p-4" style={{ backgroundColor: 'rgba(15, 23, 42, 0.5)' }}>
           <View className="bg-white rounded-[24px] shadow-xl w-full max-w-md overflow-hidden">
             <View className="flex flex-row items-center justify-between px-6 py-4 border-b border-gray-200">
@@ -309,10 +312,12 @@ export default function ItemsScreen() {
             </View>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Edit Item Modal */}
       <Modal animationType="fade" transparent={true} visible={isEditModalOpen} onRequestClose={() => setIsEditModalOpen(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View className="flex-1 items-center justify-center p-4" style={{ backgroundColor: 'rgba(15, 23, 42, 0.5)' }}>
           <View className="bg-white rounded-[24px] shadow-xl w-full max-w-md overflow-hidden">
             <View className="flex flex-row items-center justify-between px-6 py-4 border-b border-gray-200">
@@ -393,7 +398,9 @@ export default function ItemsScreen() {
             </View>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
+    </SafeAreaView>
   );
 }

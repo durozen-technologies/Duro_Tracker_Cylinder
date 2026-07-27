@@ -1,9 +1,8 @@
-export type ItemCategory = 'commercial' | 'domestic' | 'retail';
+
 
 export interface Item {
   id: string;
   name: string;
-  category: ItemCategory;
   price: number;
   capacity_kg?: number;
   hsn_code?: string;
@@ -17,7 +16,6 @@ export interface Item {
 
 export interface ItemCreate {
   name: string;
-  category: ItemCategory;
   price: number;
   capacity_kg?: number;
   hsn_code?: string;
@@ -29,7 +27,6 @@ export interface ItemCreate {
 
 export interface ItemUpdate {
   name?: string;
-  category?: ItemCategory;
   price?: number;
   capacity_kg?: number;
   hsn_code?: string;

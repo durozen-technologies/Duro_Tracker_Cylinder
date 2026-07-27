@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, Pressable, FlatList, ActivityIndicator, Modal, TextInput, Platform, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, Pressable, FlatList, ActivityIndicator, Modal, TextInput, Platform, ScrollView, KeyboardAvoidingView, Alert } from 'react-native';
 import { LogOut, Plus, FileSpreadsheet, Info, CheckCircle, PauseCircle, Edit } from 'lucide-react-native';
-import { useDrivers, useToggleDriver, useCreateDriver, useOrganization } from '../../hooks/useDrivers';
+import { useDrivers, useToggleDriver, useCreateDriver, useOrganization, useUpdateDriver } from '../../hooks/useDrivers';
 import { useProviders } from '../../hooks/usePurchases';
 import { useBuyers } from '../../hooks/useBuyers';
 import { adminReportsApi } from '../../services/api';
@@ -27,6 +28,7 @@ const CustomDatePickerModal = ({ visible, onClose, onSelect, initialDate }: { vi
 
   return (
     <Modal visible={visible} transparent animationType="fade">
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
       <Pressable className="flex-1 justify-center items-center bg-black/50 p-4" onPress={onClose}>
         <Pressable className="bg-white rounded-3xl p-4 w-full max-w-[340px]" onPress={(e) => e.stopPropagation()}>
           <View className="flex-row justify-between items-center mb-4 px-2">
@@ -76,6 +78,7 @@ const CustomDatePickerModal = ({ visible, onClose, onSelect, initialDate }: { vi
           </Pressable>
         </Pressable>
       </Pressable>
+        </KeyboardAvoidingView>
     </Modal>
   );
 };
@@ -88,6 +91,26 @@ export default function SettingsScreen() {
   const { logout } = useAuth();
 
   const [isReportModalOpen, setIsReportModalOpen] = React.useState(false);
+  const [selectedDriverForAccess, setSelectedDriverForAccess] = React.useState<Driver | null>(null);
+  const [updatePassword, setUpdatePassword] = React.useState('');
+  const { mutate: updateDriver, isPending: isUpdatingDriver } = useUpdateDriver();
+
+  const handleUpdateAccess = () => {
+    if (!selectedDriverForAccess || !updatePassword) return;
+    updateDriver(
+      { id: selectedDriverForAccess.id, data: { password: updatePassword } },
+      {
+        onSuccess: () => {
+          Alert.alert('Success', 'Password updated successfully');
+          setSelectedDriverForAccess(null);
+          setUpdatePassword('');
+        },
+        onError: (err: any) => {
+          Alert.alert('Error', err.response?.data?.detail || 'Failed to update password');
+        }
+      }
+    );
+  };
   const [reportTypes, setReportTypes] = React.useState<string[]>(['Purchase']);
   const [dateMode, setDateMode] = React.useState('single');
   const [startDate, setStartDate] = React.useState(format(new Date(), 'yyyy-MM-dd'));
@@ -338,7 +361,9 @@ const renderDatePicker = (value: string, onChange: (val: string) => void, placeh
 
         {/* Footer Actions */}
         <View className="flex flex-row gap-3 px-4 py-4 border-t border-slate-100 bg-white">
-          <Pressable className="flex-1 bg-white border border-slate-200 rounded-xl py-3 items-center justify-center flex flex-row gap-2 active:bg-slate-50">
+          <Pressable 
+            onPress={() => setSelectedDriverForAccess(item)}
+            className="flex-1 bg-white border border-slate-200 rounded-xl py-3 items-center justify-center flex flex-row gap-2 active:bg-slate-50">
             <Edit size={16} color="#4f46e5" />
             <Text className="text-indigo-600 text-sm font-bold">Manage Access</Text>
           </Pressable>
@@ -359,7 +384,8 @@ const renderDatePicker = (value: string, onChange: (val: string) => void, placeh
 
   return (
     <>
-    <View className="flex-1 bg-gray-50 p-4 pt-12">
+    <SafeAreaView edges={['top']} className="flex-1 bg-gray-50">
+    <View className="flex-1 p-4">
       {isLoading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#4f46e5" />
@@ -416,6 +442,7 @@ const renderDatePicker = (value: string, onChange: (val: string) => void, placeh
 
       {/* Create Driver Modal */}
       <Modal visible={isModalOpen} animationType="slide" transparent={true}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
           <View className="bg-white rounded-t-3xl p-6 h-[80%]">
             <View className="flex flex-row justify-between items-center mb-6">
@@ -465,10 +492,12 @@ const renderDatePicker = (value: string, onChange: (val: string) => void, placeh
             </View>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Generate Reports Modal */}
       <Modal visible={isReportModalOpen} animationType="slide" transparent={true}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View className="flex-1 justify-end bg-black/50">
           <View className="bg-white rounded-t-3xl h-[90%]">
             <View className="flex flex-row justify-between items-center p-6 pb-4 border-b border-slate-100">
@@ -686,12 +715,61 @@ const renderDatePicker = (value: string, onChange: (val: string) => void, placeh
             </View>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
     </View>
+    </SafeAreaView>
+
+
+      {/* Manage Access Modal */}
+      <Modal visible={!!selectedDriverForAccess} animationType="slide" transparent={true} onRequestClose={() => setSelectedDriverForAccess(null)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <Pressable className="flex-1 bg-black/50 justify-end" onPress={() => setSelectedDriverForAccess(null)}>
+            <Pressable className="bg-white rounded-t-3xl p-6 pb-12" onPress={(e) => e.stopPropagation()}>
+              <View className="flex flex-row justify-between items-center mb-6">
+                <Text className="text-xl font-bold text-slate-900">Manage Access</Text>
+                <Pressable onPress={() => setSelectedDriverForAccess(null)} className="p-2 bg-slate-100 rounded-full active:bg-slate-200">
+                  <Text className="text-slate-500 font-bold">✕</Text>
+                </Pressable>
+              </View>
+              
+              <Text className="text-slate-600 mb-4">
+                Update access credentials for <Text className="font-bold text-slate-900">{selectedDriverForAccess?.username}</Text>
+              </Text>
+
+              <View className="mb-4">
+                <Text className="text-sm font-semibold text-slate-700 mb-2 ml-1">New Password</Text>
+                <TextInput
+                  className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-slate-900"
+                  placeholder="Enter new password"
+                  value={updatePassword}
+                  onChangeText={setUpdatePassword}
+                  secureTextEntry
+                />
+              </View>
+
+              <Pressable
+                onPress={handleUpdateAccess}
+                disabled={isUpdatingDriver || !updatePassword}
+                className={`w-full py-4 rounded-2xl items-center mt-6 ${
+                  isUpdatingDriver || !updatePassword ? 'bg-indigo-400' : 'bg-indigo-600 active:bg-indigo-700'
+                }`}
+              >
+                {isUpdatingDriver ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text className="text-white font-bold text-lg">Update Password</Text>
+                )}
+              </Pressable>
+            </Pressable>
+          </Pressable>
+        </KeyboardAvoidingView>
+      </Modal>
 
       {/* Provider Popup */}
       <Modal visible={isProviderDropdownOpen} transparent animationType="fade">
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <Pressable className="flex-1 bg-black/40 justify-center items-center p-6" onPress={() => setIsProviderDropdownOpen(false)}>
           <Pressable className="bg-white w-full rounded-2xl overflow-hidden max-h-[70%]">
             <View className="flex flex-row justify-between items-center p-4 border-b border-slate-100">
@@ -700,7 +778,7 @@ const renderDatePicker = (value: string, onChange: (val: string) => void, placeh
                 <Text className="text-slate-600 font-bold">✕</Text>
               </Pressable>
             </View>
-            <ScrollView className="w-full" contentContainerStyle={{ paddingBottom: 16 }} showsVerticalScrollIndicator={true}>
+            <ScrollView className="w-full" contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={true}>
               <Pressable 
                 className="px-4 py-4 border-b border-slate-100 active:bg-indigo-50"
                 style={{ backgroundColor: selectedProviders.length === 0 ? '#eef2ff' : 'transparent' }}
@@ -724,10 +802,12 @@ const renderDatePicker = (value: string, onChange: (val: string) => void, placeh
             </ScrollView>
           </Pressable>
         </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Buyer Popup */}
       <Modal visible={isBuyerDropdownOpen} transparent animationType="fade">
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <Pressable className="flex-1 bg-black/40 justify-center items-center p-6" onPress={() => setIsBuyerDropdownOpen(false)}>
           <Pressable className="bg-white w-full rounded-2xl overflow-hidden max-h-[70%]">
             <View className="flex flex-row justify-between items-center p-4 border-b border-slate-100">
@@ -736,7 +816,7 @@ const renderDatePicker = (value: string, onChange: (val: string) => void, placeh
                 <Text className="text-slate-600 font-bold">✕</Text>
               </Pressable>
             </View>
-            <ScrollView className="w-full" contentContainerStyle={{ paddingBottom: 16 }} showsVerticalScrollIndicator={true}>
+            <ScrollView className="w-full" contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={true}>
               <Pressable 
                 className="px-4 py-4 border-b border-slate-100 active:bg-indigo-50"
                 style={{ backgroundColor: selectedBuyers.length === 0 ? '#eef2ff' : 'transparent' }}
@@ -760,6 +840,7 @@ const renderDatePicker = (value: string, onChange: (val: string) => void, placeh
             </ScrollView>
           </Pressable>
         </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
     </>
   );

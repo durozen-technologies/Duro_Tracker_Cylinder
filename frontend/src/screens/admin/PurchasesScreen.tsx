@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, Pressable, ScrollView, FlatList, Modal, TextInput, ActivityIndicator, Alert } from 'react-native';
-import { Plus, X, Search, Store, ArrowLeft, Download, FileText, Receipt, PackageOpen, Truck, RefreshCw } from 'lucide-react-native';
+import { View, Text, Pressable, ScrollView, FlatList, Modal, TextInput, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Plus, X, Search, Store, ArrowLeft, Download, FileText, Receipt, PackageOpen, Truck, RefreshCw, Edit, PauseCircle, CheckCircle } from 'lucide-react-native';
 import { usePurchases, useProviders, useCreatePurchase, useCreateProvider, useUpdateProvider } from '../../hooks/usePurchases';
 import { useItems } from '../../hooks/useItems';
 import type { Provider } from '../../types/api';
@@ -45,6 +46,12 @@ export default function PurchasesScreen() {
   const [isEditPriceModalOpen, setIsEditPriceModalOpen] = useState(false);
   const [editPricePerKg, setEditPricePerKg] = useState('');
   const [isInventoryModalOpen, setIsInventoryModalOpen] = useState(false);
+
+  const [isEditProviderModalOpen, setIsEditProviderModalOpen] = useState(false);
+  const [editProviderId, setEditProviderId] = useState<string | null>(null);
+  const [editProviderName, setEditProviderName] = useState('');
+  const [editProviderPhone, setEditProviderPhone] = useState('');
+  const [editProviderGstin, setEditProviderGstin] = useState('');
 
   // Custom Alert State
   const [alertVisible, setAlertVisible] = useState(false);
@@ -110,6 +117,33 @@ export default function PurchasesScreen() {
         }
       }
     );
+  };
+
+  const handleEditProvider = () => {
+    if (!editProviderId || !editProviderName.trim()) return;
+    updateProvider.mutate(
+      {
+        id: editProviderId,
+        data: {
+          name: editProviderName.trim(),
+          phone: editProviderPhone.trim(),
+          gstin: editProviderGstin.trim(),
+        }
+      },
+      {
+        onSuccess: () => {
+          setIsEditProviderModalOpen(false);
+          setEditProviderId(null);
+        }
+      }
+    );
+  };
+
+  const handleToggleProvider = (provider: Provider) => {
+    updateProvider.mutate({
+      id: provider.id,
+      data: { is_active: !provider.is_active }
+    });
   };
 
   const calculatedTotalCost = React.useMemo(() => {
@@ -232,7 +266,7 @@ export default function PurchasesScreen() {
 
     return (
       <View className="flex-1 pb-20">
-        <View className="flex flex-row items-center justify-between mb-6 mt-2">
+        <View className="flex flex-row items-center justify-between mb-4 mt-2">
           <View className="flex flex-row items-center gap-4">
             <Pressable 
               onPress={() => setSelectedProviderId(null)}
@@ -241,18 +275,27 @@ export default function PurchasesScreen() {
               <ArrowLeft size={20} color="#475569" />
             </Pressable>
             <View>
-              <Text className="text-xl font-bold text-slate-900">{selectedProvider.name}</Text>
+              <View className="flex flex-row items-center gap-2">
+                <Text className="text-xl font-bold text-slate-900">{selectedProvider.name}</Text>
+                {!selectedProvider.is_active && (
+                  <View className="bg-rose-100 px-2 py-0.5 rounded">
+                    <Text className="text-rose-700 text-[10px] font-bold uppercase tracking-wider">Paused</Text>
+                  </View>
+                )}
+              </View>
               <Text className="text-sm text-slate-500">{selectedProvider.phone || 'No phone'}</Text>
             </View>
           </View>
           <Pressable 
             onPress={() => setIsPurchaseModalOpen(true)}
-            className="flex flex-row items-center justify-center gap-2 px-4 h-10 bg-indigo-600 rounded-lg"
+            className="flex flex-row items-center justify-center gap-2 px-4 h-10 bg-indigo-600 rounded-lg active:bg-indigo-700"
           >
             <Plus size={16} color="#ffffff" />
             <Text className="text-white text-sm font-medium">Record Purchase</Text>
           </Pressable>
         </View>
+
+
 
         <View className="flex flex-row gap-4 mb-6">
           <View className="flex-1 bg-white rounded-xl border border-gray-200 p-4 flex flex-col justify-center">
@@ -341,6 +384,7 @@ export default function PurchasesScreen() {
         
         {/* Record Purchase Modal (Scoped to Provider) */}
         <Modal animationType="fade" transparent={true} visible={isPurchaseModalOpen} onRequestClose={() => setIsPurchaseModalOpen(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
           <View className="flex-1 items-center justify-center p-4" style={{ backgroundColor: 'rgba(15, 23, 42, 0.5)' }}>
             <View className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
               <View className="flex flex-row items-center justify-between px-6 py-4 border-b border-gray-200 bg-indigo-50">
@@ -435,10 +479,12 @@ export default function PurchasesScreen() {
               </View>
             </View>
           </View>
+        </KeyboardAvoidingView>
         </Modal>
         
         {/* Edit Price Modal */}
         <Modal animationType="fade" transparent={true} visible={isEditPriceModalOpen} onRequestClose={() => setIsEditPriceModalOpen(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
           <View className="flex-1 items-center justify-center p-4" style={{ backgroundColor: 'rgba(15, 23, 42, 0.5)' }}>
             <View className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
               <View className="flex flex-row items-center justify-between px-6 py-4 border-b border-gray-200">
@@ -476,10 +522,12 @@ export default function PurchasesScreen() {
               </View>
             </View>
           </View>
+        </KeyboardAvoidingView>
         </Modal>
 
         {/* Inventory Breakdown Modal */}
         <Modal animationType="fade" transparent={true} visible={isInventoryModalOpen} onRequestClose={() => setIsInventoryModalOpen(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
           <View className="flex-1 bg-black/50 justify-center items-center p-4">
             <View className="bg-white rounded-2xl w-full max-w-sm overflow-hidden">
               <View className="p-4 border-b border-gray-200 flex flex-row items-center justify-between bg-gray-50">
@@ -508,6 +556,7 @@ export default function PurchasesScreen() {
               </View>
             </View>
           </View>
+        </KeyboardAvoidingView>
         </Modal>
 
         <CustomAlert 
@@ -523,7 +572,8 @@ export default function PurchasesScreen() {
 
   // --- Main Provider List View ---
   return (
-    <View className="flex-1 bg-gray-50 p-4 pt-12">
+    <SafeAreaView edges={['top']} className="flex-1 bg-gray-50">
+    <View className="flex-1 p-4">
       <View className="flex flex-row justify-between items-start mb-6">
         <View className="flex-1 mr-4">
           <Text className="text-2xl font-semibold text-slate-900">Providers</Text>
@@ -565,31 +615,70 @@ export default function PurchasesScreen() {
             maxToRenderPerBatch={10}
             windowSize={5}
             renderItem={({ item }) => (
-              <Pressable 
-                onPress={() => setSelectedProviderId(item.id)}
-                className="flex flex-row items-center border-b border-gray-100 p-4 active:bg-slate-50"
-              >
-                <View className="w-12 h-12 bg-indigo-50 rounded-full items-center justify-center mr-4">
-                  <Truck size={24} color="#4f46e5" />
-                </View>
-                <View className="flex-1 flex flex-col justify-center gap-1">
-                  <Text className="text-base font-bold text-slate-900 tracking-tight">{item.name}</Text>
-                  <View className="flex flex-row items-center gap-2">
-                    <Text className="text-xs font-bold" style={{ color: item.balance_pending > 0 ? '#e11d48' : '#059669' }}>
-                      {item.balance_pending > 0 ? `₹${item.balance_pending.toLocaleString()} Due` : `₹${Math.abs(item.balance_pending).toLocaleString()} Adv`}
-                    </Text>
-                    <View className="w-1 h-1 rounded-full bg-slate-300" />
-                    <Text className="text-xs font-bold text-amber-600">
-                      {item.inventory?.length > 0
-                        ? item.inventory.map(inv => {
-                            const iName = items.find(i => i.id === inv.item_id)?.name || 'Cyl';
-                            return `${inv.cylinders_pending}x ${iName}`;
-                          }).join(', ')
-                        : '0 Empties'}
-                    </Text>
+              <View className="border-b border-gray-100 bg-white">
+                <Pressable 
+                  onPress={() => setSelectedProviderId(item.id)}
+                  className="flex flex-row items-center p-4 active:bg-slate-50"
+                >
+                  <View className="w-12 h-12 rounded-full items-center justify-center mr-4" style={{ backgroundColor: item.is_active ? '#eef2ff' : '#f1f5f9' }}>
+                    <Truck size={24} color={item.is_active ? '#4f46e5' : '#94a3b8'} />
                   </View>
+                  <View className="flex-1 flex flex-col justify-center gap-1">
+                    <View className="flex flex-row items-center gap-2">
+                      <Text className="text-base font-bold tracking-tight" style={{ color: item.is_active ? '#0f172a' : '#94a3b8' }}>{item.name}</Text>
+                      {!item.is_active && (
+                        <View className="bg-slate-200 px-1.5 py-0.5 rounded">
+                          <Text className="text-slate-500 text-[9px] font-bold uppercase tracking-wider">Paused</Text>
+                        </View>
+                      )}
+                    </View>
+                    <View className="flex flex-row items-center gap-2">
+                      <Text className="text-xs font-bold" style={{ color: !item.is_active ? '#cbd5e1' : (item.balance_pending > 0 ? '#e11d48' : '#059669') }}>
+                        {item.balance_pending > 0 ? `₹${item.balance_pending.toLocaleString()} Due` : `₹${Math.abs(item.balance_pending).toLocaleString()} Adv`}
+                      </Text>
+                      <View className="w-1 h-1 rounded-full bg-slate-300" />
+                      <Text className="text-xs font-bold" style={{ color: !item.is_active ? '#cbd5e1' : '#d97706' }}>
+                        {item.inventory?.length > 0
+                          ? item.inventory.map(inv => {
+                              const iName = items.find(i => i.id === inv.item_id)?.name || 'Cyl';
+                              return `${inv.cylinders_pending}x ${iName}`;
+                            }).join(', ')
+                          : '0 Empties'}
+                      </Text>
+                    </View>
+                  </View>
+                </Pressable>
+
+                <View className="flex flex-row gap-2 px-4 pb-4">
+                  <Pressable 
+                    onPress={() => {
+                      setEditProviderId(item.id);
+                      setEditProviderName(item.name);
+                      setEditProviderPhone(item.phone || '');
+                      setEditProviderGstin(item.gstin || '');
+                      setIsEditProviderModalOpen(true);
+                    }}
+                    className="flex-1 bg-rose-50 border border-rose-100 py-2.5 rounded-xl flex-row items-center justify-center gap-1.5 active:bg-slate-100"
+                  >
+                    <Edit size={14} color="#475569" />
+                    <Text className="text-slate-700 text-xs font-bold">Edit</Text>
+                  </Pressable>
+                  
+                  <Pressable 
+                    onPress={() => handleToggleProvider(item)}
+                    className="flex-1 border py-2.5 rounded-xl flex-row items-center justify-center gap-1.5 active:opacity-80"
+                    style={{ 
+                      backgroundColor: item.is_active ? '#ffffff' : '#ecfdf5', 
+                      borderColor: item.is_active ? '#e2e8f0' : '#a7f3d0' 
+                    }}
+                  >
+                    {item.is_active ? <PauseCircle size={14} color="#475569" /> : <CheckCircle size={14} color="#10b981" />}
+                    <Text className="text-xs font-bold" style={{ color: item.is_active ? '#334155' : '#047857' }}>
+                      {item.is_active ? 'Pause' : 'Activate'}
+                    </Text>
+                  </Pressable>
                 </View>
-              </Pressable>
+              </View>
             )}
             ListEmptyComponent={() => (
               <View className="p-8 items-center justify-center">
@@ -611,6 +700,7 @@ export default function PurchasesScreen() {
 
       {/* Add Provider Modal */}
       <Modal animationType="fade" transparent={true} visible={isProviderModalOpen} onRequestClose={() => setIsProviderModalOpen(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View className="flex-1 items-center justify-center p-4" style={{ backgroundColor: 'rgba(15, 23, 42, 0.5)' }}>
           <View className="bg-white rounded-[24px] shadow-xl w-full max-w-sm overflow-hidden">
             <View className="flex flex-row items-center justify-between px-6 py-4 border-b border-gray-200">
@@ -701,6 +791,66 @@ export default function PurchasesScreen() {
             </View>
           </View>
         </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Edit Provider Modal */}
+      <Modal animationType="fade" transparent={true} visible={isEditProviderModalOpen} onRequestClose={() => setIsEditProviderModalOpen(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <View className="flex-1 items-center justify-center p-4" style={{ backgroundColor: 'rgba(15, 23, 42, 0.5)' }}>
+          <View className="bg-white rounded-[24px] shadow-xl w-full max-w-sm overflow-hidden">
+            <View className="flex flex-row items-center justify-between px-6 py-4 border-b border-gray-200">
+              <Text className="text-lg font-bold text-slate-900">Edit Provider Details</Text>
+              <Pressable onPress={() => setIsEditProviderModalOpen(false)} className="p-1.5 rounded-full bg-slate-100">
+                <X size={18} color="#64748b" />
+              </Pressable>
+            </View>
+            
+            <View className="p-6 flex flex-col gap-4">
+              <View>
+                <Text className="text-sm font-bold text-slate-700 mb-1">Provider Name</Text>
+                <TextInput 
+                  placeholder="e.g. ABC Gas Agency"
+                  value={editProviderName}
+                  onChangeText={setEditProviderName}
+                  className="w-full rounded-xl border-gray-300 border px-4 py-3 text-sm text-slate-900 bg-slate-50"
+                />
+              </View>
+              <View>
+                <Text className="text-sm font-bold text-slate-700 mb-1">GSTIN</Text>
+                <TextInput 
+                  placeholder="e.g. 27AAAAA0000A1Z5"
+                  autoCapitalize="characters"
+                  value={editProviderGstin}
+                  onChangeText={setEditProviderGstin}
+                  className="w-full rounded-xl border-gray-300 border px-4 py-3 text-sm text-slate-900 bg-slate-50 uppercase"
+                />
+              </View>
+              <View>
+                <Text className="text-sm font-bold text-slate-700 mb-1">Phone Number</Text>
+                <TextInput 
+                  placeholder="e.g. 9876543210"
+                  keyboardType="phone-pad"
+                  value={editProviderPhone}
+                  onChangeText={setEditProviderPhone}
+                  className="w-full rounded-xl border-gray-300 border px-4 py-3 text-sm text-slate-900 bg-slate-50"
+                />
+              </View>
+
+              <Pressable 
+                onPress={handleEditProvider}
+                disabled={updateProvider.isPending || !editProviderName.trim()}
+                className="w-full rounded-xl py-3.5 items-center justify-center mt-2"
+                style={{ backgroundColor: (updateProvider.isPending || !editProviderName.trim()) ? '#a5b4fc' : '#4f46e5' }}
+              >
+                <Text className="text-white font-bold text-sm">
+                  {updateProvider.isPending ? 'Saving...' : 'Save Changes'}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <CustomAlert 
@@ -711,5 +861,6 @@ export default function PurchasesScreen() {
         onClose={() => setAlertVisible(false)}
       />
     </View>
+    </SafeAreaView>
   );
 }

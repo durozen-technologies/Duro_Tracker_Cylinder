@@ -1,12 +1,11 @@
 from uuid import UUID
 
-from sqlalchemy import Boolean, CheckConstraint, Enum, Integer, Numeric, String
+from sqlalchemy import Boolean, CheckConstraint, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ..core.ids import UUID_SQL_TYPE, uuid7
 from ..db.database import Base
 from .base import BaseModelMixin
-from .enums import ItemCategory
 
 
 class Item(Base, BaseModelMixin):
@@ -19,7 +18,6 @@ class Item(Base, BaseModelMixin):
 
     id: Mapped[UUID] = mapped_column(UUID_SQL_TYPE, primary_key=True, index=True, default=uuid7)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    category: Mapped[ItemCategory] = mapped_column(Enum(ItemCategory), nullable=False)
     price: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
     capacity_kg: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
     hsn_code: Mapped[str | None] = mapped_column(String(50), nullable=True)

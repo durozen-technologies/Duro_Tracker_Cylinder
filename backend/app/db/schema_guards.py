@@ -1,7 +1,6 @@
 from sqlalchemy import inspect, text
 from sqlalchemy.engine import Connection
 
-from ..core.ids import uuid7
 from .database import Base
 
 UUID_IDENTIFIER_COLUMNS = {
@@ -15,7 +14,7 @@ UUID_IDENTIFIER_COLUMNS = {
     "inventory_item_categories": {"id", "inventory_item_id", "category_id"},
     "inventory_items": {"id"},
     "inventory_movements": {"id", "shop_id", "inventory_item_id", "category_id"},
-    "items": {"id", "category_id"},
+    "items": {"id"},
     "item_categories": {"id"},
     "item_change_events": {"id", "item_id", "shop_id"},
     "payments": {"id", "bill_id"},
@@ -146,142 +145,3 @@ def _ensure_inventory_vehicle_number_column(sync_conn: Connection) -> None:
         )
 
 
-def _ensure_item_category_schema(sync_conn: Connection) -> None:
-    """Compatibility guard for direct API starts before Alembic has run.
-
-    Alembic remains the canonical migration path. This small idempotent guard
-    prevents a newer app process from crashing on ``items.category_id`` when a
-    local or manually started backend points at an older database.
-    """
-    inspector = inspect(sync_conn)
-    table_names = set(inspector.get_table_names())
-    dialect = sync_conn.dialect.name
-
-    # ponytail: after public cutover, tenant DDL lives in tenant schemas only
-    if dialect == "postgresql" and "items" not in table_names:
-        return
-
-    if "item_categories" not in table_names:
-        if dialect == "postgresql":
-            sync_conn.execute(
-                text(
-                    """
-                    CREATE TABLE IF NOT EXISTS item_categories (
-                        id UUID PRIMARY KEY,
-                        name VARCHAR(80) NOT NULL,
-                        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
-                        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
-                        CONSTRAINT ck_item_categories_name_not_blank CHECK (length(trim(name)) >= 1)
-                    )
-                    """
-                )
-            )
-        else:
-            sync_conn.execute(
-                text(
-                    """
-                    CREATE TABLE IF NOT EXISTS item_categories (
-                        id CHAR(32) PRIMARY KEY,
-                        name VARCHAR(80) NOT NULL,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-                        CONSTRAINT ck_item_categories_name_not_blank CHECK (length(trim(name)) >= 1)
-                    )
-                    """
-                )
-            )
-
-    if dialect == "postgresql":
-        sync_conn.execute(
-            text(
-                "CREATE UNIQUE INDEX IF NOT EXISTS ix_item_categories_lower_name "
-                "ON item_categories (lower(name))"
-            )
-        )
-    else:
-        sync_conn.execute(
-            text(
-                "CREATE UNIQUE INDEX IF NOT EXISTS ix_item_categories_lower_name "
-                "ON item_categories (lower(name))"
-            )
-        )
-
-    table_names = set(inspect(sync_conn).get_table_names())
-    if "items" not in table_names:
-        return
-
-    item_columns = {column["name"] for column in inspect(sync_conn).get_columns("items")}
-    if "category_id" not in item_columns:
-        if dialect == "postgresql":
-            sync_conn.execute(text("ALTER TABLE items ADD COLUMN IF NOT EXISTS category_id UUID"))
-        else:
-            sync_conn.execute(text("ALTER TABLE items ADD COLUMN category_id CHAR(32)"))
-
-    if dialect == "postgresql":
-        sync_conn.execute(
-            text("CREATE INDEX IF NOT EXISTS ix_items_category_id ON items (category_id)")
-        )
-        foreign_key_names = {
-            key["name"] for key in inspect(sync_conn).get_foreign_keys("items") if key.get("name")
-        }
-        if "fk_items_category_id_item_categories" not in foreign_key_names:
-            sync_conn.execute(
-                text(
-                    """
-                    ALTER TABLE items
-                    ADD CONSTRAINT fk_items_category_id_item_categories
-                    FOREIGN KEY (category_id) REFERENCES item_categories(id) ON DELETE SET NULL
-                    """
-                )
-            )
-    else:
-        sync_conn.execute(
-            text("CREATE INDEX IF NOT EXISTS ix_items_category_id ON items (category_id)")
-        )
-
-    category_rows = sync_conn.execute(
-        text(
-            """
-            SELECT DISTINCT trim(category) AS name
-            FROM items
-            WHERE category IS NOT NULL AND trim(category) != ''
-            """
-        )
-    ).mappings()
-    existing_categories = {
-        str(row["name"]).strip().lower(): row["id"]
-        for row in sync_conn.execute(text("SELECT id, name FROM item_categories")).mappings()
-    }
-    for row in category_rows:
-        category_name = str(row["name"]).strip()
-        key = category_name.lower()
-        category_id = existing_categories.get(key)
-        if category_id is None:
-            category_id = uuid7()
-            bound_category_id = category_id if dialect == "postgresql" else str(category_id)
-            sync_conn.execute(
-                text(
-                    """
-                    INSERT INTO item_categories (id, name)
-                    VALUES (:category_id, :category_name)
-                    """
-                ),
-                {"category_id": bound_category_id, "category_name": category_name},
-            )
-            existing_categories[key] = bound_category_id
-            category_id = bound_category_id
-        sync_conn.execute(
-            text(
-                """
-                UPDATE items
-                SET category_id = :category_id,
-                    category = :category_name
-                WHERE lower(trim(category)) = :category_key
-                """
-            ),
-            {
-                "category_id": category_id,
-                "category_name": category_name,
-                "category_key": key,
-            },
-        )

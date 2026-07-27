@@ -1,2 +1,18 @@
 .agents/.env
 job_log*
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# IDEs and Editors
+.vscode/
+.idea/
+.cursor/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db

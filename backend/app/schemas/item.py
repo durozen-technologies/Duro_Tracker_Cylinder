@@ -2,12 +2,9 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.enums import ItemCategory
-
 
 class ItemBase(BaseModel):
     name: str
-    category: ItemCategory
     price: float = Field(ge=0.0)
     capacity_kg: float | None = Field(default=None, ge=0.0)
     hsn_code: str | None = Field(default=None, pattern=r'^\d+$', description="HSN Code containing only digits")
@@ -23,7 +20,6 @@ class ItemCreate(ItemBase):
 
 class ItemUpdate(BaseModel):
     name: str | None = None
-    category: ItemCategory | None = None
     price: float | None = Field(default=None, ge=0.0)
     capacity_kg: float | None = Field(default=None, ge=0.0)
     hsn_code: str | None = Field(default=None, pattern=r'^\d+$')

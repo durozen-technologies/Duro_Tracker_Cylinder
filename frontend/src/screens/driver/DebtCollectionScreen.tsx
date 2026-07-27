@@ -20,7 +20,7 @@ export default function DebtCollectionScreen() {
   const queryClient = useQueryClient();
   const { data: organization } = useDriverOrganization();
   const { startReceiptImagePrintJob, receiptImagePrintBridge } = useReceiptImagePrintJob();
-  
+
   const [buyerModalVisible, setBuyerModalVisible] = useState(false);
   const [printerModalVisible, setPrinterModalVisible] = useState(false);
   const [buyerSearchQuery, setBuyerSearchQuery] = useState('');
@@ -31,9 +31,9 @@ export default function DebtCollectionScreen() {
 
   // Custom Alert State
   const [alertVisible, setAlertVisible] = useState(false);
-  const [alertConfig, setAlertConfig] = useState({ title: '', message: '', type: 'error' as 'error'|'success'|'info' });
+  const [alertConfig, setAlertConfig] = useState({ title: '', message: '', type: 'error' as 'error' | 'success' | 'info' });
 
-  const showAlert = (title: string, message: string, type: 'error'|'success'|'info' = 'error') => {
+  const showAlert = (title: string, message: string, type: 'error' | 'success' | 'info' = 'error') => {
     setAlertConfig({ title, message, type });
     setAlertVisible(true);
   };
@@ -78,18 +78,18 @@ export default function DebtCollectionScreen() {
   const submitMutation = useMutation({
     mutationFn: async (payload: any) => {
       return await api.post(`/driver/collections`, payload, {
-        headers: { 
+        headers: {
           'X-Idempotency-Key': idempotencyKey
         }
       });
     },
     onSuccess: (data) => {
       showAlert("Success", "Payment collected successfully.", "success");
-      
+
       if (selectedBuyer && preferredPrinter) {
         const cash_paid = parseFloat(cashCollected || '0');
         const upi_paid = parseFloat(upiCollected || '0');
-        
+
         const receiptData: DeliveryReceiptData = {
           receipt_type: 'PAYMENT',
           receipt_number: data?.data?.bill_number || Math.random().toString(36).substring(2, 8).toUpperCase(),
@@ -135,11 +135,11 @@ export default function DebtCollectionScreen() {
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1 bg-zinc-50">
       <ScrollView className="flex-1 p-4 pt-6" showsVerticalScrollIndicator={false}>
-        
+
         {/* Buyer Selection */}
         <View className="bg-white rounded-2xl p-4 mb-4 border border-zinc-100">
           <Text className="text-zinc-500 font-medium mb-2">Select Buyer *</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             className="flex-row items-center justify-between bg-zinc-50 border border-zinc-200 p-4 rounded-xl"
             onPress={() => setBuyerModalVisible(true)}
           >
@@ -158,12 +158,12 @@ export default function DebtCollectionScreen() {
         {/* Payment Collection */}
         {selectedBuyer && (
           <View className="bg-white rounded-2xl p-4 border border-zinc-100 shadow-sm mb-6 space-y-4">
-            
+
             <View className="bg-blue-50 border border-blue-100 p-4 rounded-xl mb-4 flex-row justify-between items-center">
               <Text className="text-blue-800 font-medium text-lg">Current Pending:</Text>
               <Text className="text-blue-900 font-bold text-2xl">₹{parseFloat(selectedBuyer.balance_pending.toString()).toFixed(2)}</Text>
             </View>
-            
+
             <View className="flex-row gap-4 mb-4">
               <View className="flex-1">
                 <Text className="text-zinc-500 font-medium mb-1">Cash Collected</Text>
@@ -233,15 +233,15 @@ export default function DebtCollectionScreen() {
             }
             const cash = parseFloat(cashCollected || '0');
             const upi = parseFloat(upiCollected || '0');
-            
+
             if (cash + upi <= 0) {
               showAlert("Invalid", "Please enter an amount to collect.");
               return;
             }
 
             if (cash + upi > parseFloat(selectedBuyer?.balance_pending?.toString() || '0')) {
-               showAlert("Invalid", "Cannot collect more than the pending balance.");
-               return;
+              showAlert("Invalid", "Cannot collect more than the pending balance.");
+              return;
             }
 
             submitMutation.mutate({
@@ -275,7 +275,7 @@ export default function DebtCollectionScreen() {
             </View>
             <View className="flex-row items-center bg-zinc-50 rounded-2xl px-4 py-3 mb-4 border border-zinc-100">
               <Ionicons name="search" size={20} color="#a1a1aa" />
-              <TextInput 
+              <TextInput
                 className="flex-1 ml-2 text-base text-zinc-800"
                 placeholder="Search buyers..."
                 placeholderTextColor="#a1a1aa"
@@ -291,8 +291,8 @@ export default function DebtCollectionScreen() {
                 </View>
               ) : (
                 buyers?.filter(b => b.balance_pending > 0 && b.name.toLowerCase().includes(buyerSearchQuery.toLowerCase())).map(b => (
-                  <TouchableOpacity 
-                    key={b.id} 
+                  <TouchableOpacity
+                    key={b.id}
                     className={`p-4 mb-3 rounded-2xl active:opacity-80 ${buyerId === b.id ? 'bg-blue-50 border border-blue-200' : 'bg-white border border-zinc-100 shadow-sm'}`}
                     onPress={() => { setBuyerId(b.id); setBuyerModalVisible(false); }}
                   >
@@ -300,7 +300,7 @@ export default function DebtCollectionScreen() {
                       <Text className={`text-base font-bold ${buyerId === b.id ? 'text-blue-800' : 'text-zinc-900'}`}>{b.name}</Text>
                       <Text className={`font-bold text-sm ${buyerId === b.id ? 'text-blue-600' : 'text-zinc-500'}`}>₹ {b.balance_pending?.toFixed(2) || '0.00'}</Text>
                     </View>
-                    
+
                     {b.phone || b.address ? (
                       <View className="flex-row flex-wrap items-center gap-x-3">
                         {b.phone ? (
@@ -326,12 +326,12 @@ export default function DebtCollectionScreen() {
         </View>
       </Modal>
 
-      <PrinterSettingsModal 
-        visible={printerModalVisible} 
-        onClose={() => setPrinterModalVisible(false)} 
+      <PrinterSettingsModal
+        visible={printerModalVisible}
+        onClose={() => setPrinterModalVisible(false)}
       />
 
-      <CustomAlert 
+      <CustomAlert
         visible={alertVisible}
         title={alertConfig.title}
         message={alertConfig.message}

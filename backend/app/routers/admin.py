@@ -70,7 +70,6 @@ async def create_item(
 ):
     item = Item(
         name=item_in.name,
-        category=item_in.category,
         price=item_in.price,
         capacity_kg=item_in.capacity_kg,
         initial_full=item_in.initial_full,
@@ -107,8 +106,6 @@ async def update_item(
 
     if item_in.name is not None:
         item.name = item_in.name
-    if item_in.category is not None:
-        item.category = item_in.category
     if item_in.price is not None:
         item.price = item_in.price
     if item_in.capacity_kg is not None:
@@ -458,9 +455,9 @@ async def generate_sales_pdf_endpoint(
     from app.models import Buyer, DeliveryItem
     from app.services.reports.sales_pdf import (
         SalesPdfBillData,
+        SalesPdfBuyerSummary,
         SalesPdfData,
         SalesPdfItemData,
-        SalesPdfBuyerSummary,
         generate_sales_pdf,
     )
 
@@ -536,7 +533,6 @@ async def generate_sales_pdf_endpoint(
 
     # Determine buyer info
     buyer_name = "Multiple Buyers"
-    buyer_gstin = ""
     buyer_phone = ""
 
     if buyer_ids and len(buyer_ids.split(',')) == 1:
@@ -713,6 +709,8 @@ async def generate_purchase_pdf_endpoint(
     # Get org details
     org = await platform_db.get(Organization, current_user.organization_id)
     org_name = org.name if org else "Organization"
+    org_address = org.address or "" if org else ""
+    org_phone = org.phone or "" if org else ""
     
     # Provider details
     provider_name = "Various Providers"
@@ -729,7 +727,7 @@ async def generate_purchase_pdf_endpoint(
                     provider_name = provider.name
                     provider_phone = getattr(provider, "phone", "") or ""
                     provider_gstin = getattr(provider, "gstin", "") or ""
-        except:
+        except Exception:
             pass
 
     pdf_bills = []
@@ -769,8 +767,8 @@ async def generate_purchase_pdf_endpoint(
     data = PurchasePdfData(
         org_name=org_name,
         org_gstin="", # Assume org gstin not in model
-        org_address="",
-        org_phone="",
+        org_address=org_address,
+        org_phone=org_phone,
         provider_name=provider_name,
         provider_gstin=provider_gstin,
         provider_phone=provider_phone,
@@ -784,4 +782,62 @@ async def generate_purchase_pdf_endpoint(
         pdf_buffer,
         media_type="application/pdf",
         headers={"Content-Disposition": f"attachment; filename=Purchase_Report_{date_display_text.replace(' ', '_')}.pdf"}
+    )
+
+
+@router.get("/reports/inventory/pdf")
+async def generate_inventory_pdf_endpoint(
+    current_user: User = Depends(require_tenant_admin()),
+    db: AsyncSession = Depends(get_tenant_db),
+    platform_db: AsyncSession = Depends(get_platform_db),
+):
+    import datetime
+
+    from sqlalchemy import select
+
+    from app.models import Item, Organization
+    from app.services.reports.inventory_pdf import (
+        InventoryPdfData,
+        InventoryPdfItemData,
+        generate_inventory_pdf,
+    )
+    
+    # 1. Fetch Organization Details
+    org = await platform_db.get(Organization, current_user.organization_id)
+    org_name = org.name if org else "Organization"
+    org_address = org.address or "" if org else ""
+    org_phone = org.phone or "" if org else ""
+
+    # 2. Fetch all active items
+    result = await db.execute(
+        select(Item)
+        .where(Item.is_active)
+        .order_by(Item.name.asc())
+    )
+    items_db = result.scalars().all()
+    
+    pdf_items = []
+    for item in items_db:
+        pdf_items.append(InventoryPdfItemData(
+            item_name=item.name,
+            price=float(item.price),
+            current_full=item.current_full,
+            current_empty=item.current_empty
+        ))
+        
+    data = InventoryPdfData(
+        org_name=org_name,
+        org_address=org_address,
+        org_phone=org_phone,
+        items=pdf_items
+    )
+    
+    pdf_buffer = generate_inventory_pdf(data)
+    
+    date_str = datetime.datetime.now().strftime("%Y-%m-%d")
+    
+    return StreamingResponse(
+        pdf_buffer,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=Inventory_Report_{date_str}.pdf"}
     )

@@ -17,8 +17,8 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-from app.db.database import Base
 import app.models  # noqa: F401
+from app.db.database import Base
 
 target_metadata = Base.metadata
 
@@ -83,7 +83,7 @@ def do_run_migrations(connection: Connection, tenant_schemas: list[str]) -> None
             include_object=include_object_tenant,
             version_table_schema=schema_name,
             schema_translate_map={"tenant": schema_name},
-            version_locations=[tenant_version_loc],
+            version_locations=[public_version_loc, tenant_version_loc],
         )
         with context.begin_transaction():
             context.run_migrations()

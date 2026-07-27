@@ -9,8 +9,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 
-from app.auth.dependencies import get_current_active_user, get_tenant_db, get_platform_db
-from app.models import Buyer, DeliveryBill, DeliveryItem, Item, User, Organization
+from app.auth.dependencies import get_current_active_user, get_platform_db, get_tenant_db
+from app.models import Buyer, DeliveryBill, DeliveryItem, Item, Organization, User
 from app.models.enums import UserRole
 from app.models.sequence import TenantSequence
 from app.schemas.buyer import BuyerOut
@@ -228,7 +228,7 @@ async def list_active_items(
     db: AsyncSession = Depends(get_tenant_db),
 ):
     # Driver can only see active items
-    result = await db.scalars(select(Item).where(Item.is_active == True))
+    result = await db.scalars(select(Item).where(Item.is_active))
     return result.all()
 
 
@@ -240,7 +240,7 @@ async def list_active_buyers(
     result = await db.scalars(
         select(Buyer)
         .options(selectinload(Buyer.inventory))
-        .where(Buyer.is_active == True)
+        .where(Buyer.is_active)
     )
     return result.unique().all()
 
@@ -326,9 +326,9 @@ async def create_debt_collection(
 
 @router.get("/entries/{bill_id}/pdf")
 async def generate_delivery_pdf_endpoint(
-    bill_id: int,
+    bill_id: str,
     db: AsyncSession = Depends(get_tenant_db),
-    # Note: Drivers can access their own PDFs, or admins can access all. For now, basic auth is enough.
+    current_user: User = Depends(get_current_active_user)
 ):
     from fastapi.responses import StreamingResponse
 
@@ -367,11 +367,14 @@ async def generate_delivery_pdf_endpoint(
             amount=float(entry.line_total_amount)
         ))
         
+    # 1a. Fetch organization
+    from app.models.organization import Organization
+    org = await db.get(Organization, current_user.organization_id)
+    
     data = DeliveryPdfData(
-        org_name="Sree Hari Agencies",
-        org_gstin="33XXXXX1234X1Z5",
-        org_address="123, Main Road, City - 600000",
-        org_phone="+91 9876543210",
+        org_name=org.name if org else "Unknown Organization",
+        org_address=org.address if org and org.address else "-",
+        org_phone=org.phone if org and org.phone else "-",
         buyer_name=buyer_name,
         buyer_address=buyer_address,
         buyer_phone=buyer_phone,
