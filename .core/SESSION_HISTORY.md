@@ -1574,3 +1574,8 @@ Approved implementation plan for database query optimization and schema validati
 - **Action Taken:** Discovered a massive missing piece from the last commit: the database migration for \	otal_lifetime_sales\ and \	otal_lifetime_paid\ on the Buyer model was entirely missing, meaning the DB tables lacked the columns the backend code expected. Fixed the corrupted alembic_version on the public schema, generated the proper tenant migration (fcd17703ca13) adding those columns, and executed it across all schemas. Also fixed an ESLint unescaped entity error in ItemsScreen.tsx.
 - [2026-07-27 16:30] Created docker-compose.yml for Dockploy deployment. Configured postgres, backend-1, backend-2, and caddy. Removed legacy rustfs config from Caddyfile.template.
 - [2026-07-27 16:45] Committed and pushed all Docker, backend, and frontend updates to GitHub.
+
+### [2026-07-27 17:08:00] Fixed Dockploy Deployment Bugs
+- **User Request:** Debug and fix backend and Docker deployment crashes on Dockploy.
+- **Action Taken:** Fixed broken COPY commands in backend/Dockerfile that referenced missing files (assets, README, etc.). Fixed docker-gunicorn.sh to correctly execute app.main:app instead of main:app, resolving the restarting loop. Added remote for durozen-technologies and successfully pushed the codebase.
+
