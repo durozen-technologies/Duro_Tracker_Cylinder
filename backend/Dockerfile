@@ -28,7 +28,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 FROM deps AS builder
 
-COPY run_migrations.py alembic.ini ./
+COPY run_migrations.py manage.py alembic.ini ./
 COPY app ./app
 COPY migrations ./migrations
 
@@ -69,7 +69,7 @@ RUN addgroup --system --gid "${APP_GID}" app \
     && chown -R app:app "${HOME}" "${TMPDIR}"
 
 COPY --from=builder --chown=app:app /app/.venv /app/.venv
-COPY --from=builder --chown=app:app /app/run_migrations.py /app/alembic.ini ./
+COPY --from=builder --chown=app:app /app/run_migrations.py /app/manage.py /app/alembic.ini ./
 COPY --from=builder --chown=app:app /app/app /app/app
 COPY --from=builder --chown=app:app /app/migrations /app/migrations
 COPY --chown=app:app --chmod=0755 docker-entrypoint.sh /docker-entrypoint.sh
