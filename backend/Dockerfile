@@ -21,17 +21,16 @@ WORKDIR /app
 
 RUN python -m pip install --no-cache-dir "uv==${UV_VERSION}"
 
-COPY pyproject.toml uv.lock README.md ./
+COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev --no-install-project
 
 
 FROM deps AS builder
 
-COPY main.py migrate.py alembic.ini ./
+COPY run_migrations.py alembic.ini ./
 COPY app ./app
 COPY migrations ./migrations
-COPY assets ./assets
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev
@@ -66,14 +65,13 @@ WORKDIR /app
 
 RUN addgroup --system --gid "${APP_GID}" app \
     && adduser --system --uid "${APP_UID}" --ingroup app --home "${HOME}" --no-create-home --disabled-password app \
-    && mkdir -p "${HOME}" /app/assets "${TMPDIR}" \
-    && chown -R app:app "${HOME}" /app/assets "${TMPDIR}"
+    && mkdir -p "${HOME}" "${TMPDIR}" \
+    && chown -R app:app "${HOME}" "${TMPDIR}"
 
 COPY --from=builder --chown=app:app /app/.venv /app/.venv
-COPY --from=builder --chown=app:app /app/main.py /app/migrate.py /app/alembic.ini ./
+COPY --from=builder --chown=app:app /app/run_migrations.py /app/alembic.ini ./
 COPY --from=builder --chown=app:app /app/app /app/app
 COPY --from=builder --chown=app:app /app/migrations /app/migrations
-COPY --from=builder --chown=app:app /app/assets /app/assets
 COPY --chown=app:app --chmod=0755 docker-entrypoint.sh /docker-entrypoint.sh
 COPY --chown=app:app --chmod=0755 docker-gunicorn.sh /app/docker-gunicorn.sh
 
