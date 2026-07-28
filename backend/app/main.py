@@ -148,5 +148,15 @@ app.add_middleware(RequestIdMiddleware)
 app.add_middleware(SelectiveGZipMiddleware, minimum_size=1024)
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
 
+@app.get("/")
+async def get_project_details():
+    return {
+        "project": settings.app_name,
+        "version": "0.1.0",
+        "status": "online",
+        "docs_url": "/docs" if settings.enable_api_docs else None,
+        "message": "Welcome to the Duro Tracker API"
+    }
+
 app.include_router(readiness_router)
 app.include_router(api_router, prefix=settings.api_v1_prefix)

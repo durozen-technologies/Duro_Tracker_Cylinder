@@ -1648,3 +1648,4 @@ Approved implementation plan for database query optimization and schema validati
 - 2026-07-28 15:08:38 - Added loading state and double-click prevention to the print button in BillCard (BillsScreen.tsx), utilizing a spinner ActivityIndicator and an awaited Promise.
 - 2026-07-28 15:18:53 - Added ENABLE_API_DOCS environment variable in backend config to toggle Swagger/OpenAPI docs independent of PRODUCTION.
 - 2026-07-28 15:21:06 - Appended ENABLE_API_DOCS=false to the backend .env file.
+- 2026-07-28 15:31:20 - Added project details to the root (/) GET endpoint in main.py.
