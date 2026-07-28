@@ -1579,3 +1579,37 @@ Approved implementation plan for database query optimization and schema validati
 - **User Request:** Debug and fix backend and Docker deployment crashes on Dockploy.
 - **Action Taken:** Fixed broken COPY commands in backend/Dockerfile that referenced missing files (assets, README, etc.). Fixed docker-gunicorn.sh to correctly execute app.main:app instead of main:app, resolving the restarting loop. Added remote for durozen-technologies and successfully pushed the codebase.
 
+
+### [2026-07-27 18:39:00] Removed Caddy from Project
+- **User Request:** Remove Caddy since deploying with Dokploy (which has Traefik built-in).
+- **Action Taken:** Deleted the caddy directory, removed the caddy service and volumes from docker-compose.yml, and exposed port 8000:8000 directly on the backend service so Dokploy can route to it. Pushed changes to GitHub.
+
+
+### [2026-07-27 18:51:00] Fixed PostgreSQL Auth Issue
+- **User Request:** Debug PostgreSQL 'password authentication failed' error on Dokploy startup.
+- **Action Taken:** Removed the double dollar signs () in the docker-compose.yml DATABASE_URL environment variable, allowing Docker Compose to properly resolve the .env variables instead of passing the literal string to Python. Pushed fix to GitHub.
+
+
+### [2026-07-27 18:55:00] Fixed Alembic DDL Caching Issue on Asyncpg
+- **User Request:** Debug Alembic UndefinedTableError for public.alembic_version during migrations.
+- **Action Taken:** Converted migrations/env.py to use the synchronous psycopg2 driver instead of asyncpg. Asyncpg has known DDL caching bugs where CREATE TABLE within a transaction is not immediately visible to subsequent INSERTs in the same transaction block, causing the crash on fresh databases. Pushed the fix.
+
+
+### [2026-07-27 18:59:00] Fixed Alembic Initial Migration Bug
+- **User Request:** Debug Alembic UndefinedTableError again on the public.alembic_version table.
+- **Action Taken:** Found the true root cause! The very first auto-generated migration script (e73b477a6537_initial_public_schema.py) contained a rogue op.drop_table('alembic_version') command. This happened because the table existed locally but wasn't in the models during generation. As a result, Alembic created the table, the migration script deleted it, and then Alembic crashed trying to insert the version number into the deleted table. Removed the bad command and added alembic_version to the ignored tables in env.py so it never happens again. Pushed the fix.
+
+
+### [2026-07-27 19:36:00] Removed seed.py
+- **User Request:** Delete seed.py since manage.py is sufficient for superadmin creation.
+- **Action Taken:** Ran git rm on backend/seed.py, committed, and pushed the change.
+
+
+### [2026-07-27 21:28:00] Fixed Dockerfile missing manage.py
+- **User Request:** User encountered 'No such file or directory' when running manage.py in production.
+- **Action Taken:** Updated backend/Dockerfile to include manage.py in the COPY instructions for both builder and runtime stages. Pushed to Github.
+
+
+### [2026-07-28 06:08:03] Fixed Agent TypeScript Mess
+- **User Request:** "understand the project fully ok the last chat agent made an mess ok go through the .agent and .core folder first"
+- **Action Taken:** Reviewed architecture, rules, and history. Identified that a previous Python script injected by an agent corrupted TSX files. Fixed TypeScript errors in `SettingsScreen.tsx` (state duplication, missing Alert import) and `ItemsScreen.tsx` (leftover `ItemCategory`). Validated fixes with `tsc --noEmit`.

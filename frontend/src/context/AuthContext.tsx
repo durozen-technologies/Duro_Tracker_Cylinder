@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { DeviceEventEmitter } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { jwtDecode } from 'jwt-decode';
 import { useQueryClient } from '@tanstack/react-query';
@@ -21,6 +22,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const queryClient = useQueryClient();
 
+  // Create the logout function early so we can use it in the useEffect listener
+  const logout = async () => {
+    try {
+      await AsyncStorage.removeItem('@auth_token');
+      queryClient.clear();
+      setUserToken(null);
+      setUserRole(null);
+    } catch (e) {
+      console.error("Failed to logout", e);
+    }
+  };
+
   useEffect(() => {
     const bootstrapAsync = async () => {
       try {
@@ -38,6 +51,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     bootstrapAsync();
+
+    // Listen for 401 Unauthorized errors from the API Client
+    const subscription = DeviceEventEmitter.addListener('onTokenExpired', () => {
+      logout();
+    });
+
+    return () => {
+      subscription.remove();
+    };
   }, []);
 
   const login = async (token: string) => {
@@ -52,16 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = async () => {
-    try {
-      await AsyncStorage.removeItem('@auth_token');
-      queryClient.clear();
-      setUserToken(null);
-      setUserRole(null);
-    } catch (e) {
-      console.error("Failed to logout", e);
-    }
-  };
+
 
   return (
     <AuthContext.Provider value={{ userToken, userRole, isLoading, login, logout }}>
