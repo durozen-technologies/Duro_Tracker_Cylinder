@@ -32,6 +32,7 @@ const config = {
   slug: "duro-tracker",
   version: "1.0.0",
   orientation: "portrait",
+  icon: "./assets/icon.png",
   scheme: "durotracker",
   userInterfaceStyle: "light",
   splash: {
