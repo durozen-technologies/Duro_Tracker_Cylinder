@@ -8,6 +8,11 @@ import { useItems } from '../../hooks/useItems';
 import { BillCard } from '../../components/BillCard';
 import type { Buyer } from '../../types/api';
 import { format } from 'date-fns';
+import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '../../services/api';
+import { Ionicons } from '@expo/vector-icons';
 
 
 export default function BuyersScreen() {
@@ -171,6 +176,34 @@ export default function BuyersScreen() {
     });
   };
 
+  const handleSharePDF = async (item: any) => {
+    try {
+      const url = `${API_BASE_URL}/driver/entries/${item.id}/pdf`;
+      const fileUri = `${FileSystem.cacheDirectory}Bill_${item.bill_number || item.id}.pdf`;
+
+      const token = await AsyncStorage.getItem("@auth_token");
+
+      const { uri } = await FileSystem.downloadAsync(url, fileUri, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, {
+          UTI: ".pdf",
+          mimeType: "application/pdf",
+        });
+      } else {
+        Alert.alert(
+          "Sharing not available",
+          "Sharing is not supported on this device.",
+        );
+      }
+    } catch (e) {
+      Alert.alert("Error", "Could not download or share the PDF.");
+      console.error(e);
+    }
+  };
+
   const renderLedgerRow = ({ item }: { item?: any }) => {
     if (!item) return null;
 
@@ -193,16 +226,23 @@ export default function BuyersScreen() {
             </Text>
             <Text className="text-xs font-medium text-slate-500 mt-1">{formattedDate}</Text>
           </View>
-          <View className="items-end shrink-0">
-            {isBill ? (
-              <Text className="text-lg font-black font-mono text-indigo-600">
-                ₹{item.amount ? item.amount.toLocaleString() : '0'}
-              </Text>
-            ) : (
-              <Text className="text-lg font-black font-mono text-emerald-600">
-                +₹{item.paid ? item.paid.toLocaleString() : '0'}
-              </Text>
+          <View className="flex flex-row items-center gap-4 shrink-0">
+            {isBill && (
+              <Pressable onPress={() => handleSharePDF(item)} className="p-2 bg-indigo-50 rounded-xl border border-indigo-100 active:bg-indigo-100">
+                <Ionicons name="share-social" size={18} color="#4f46e5" />
+              </Pressable>
             )}
+            <View className="items-end">
+              {isBill ? (
+                <Text className="text-lg font-black font-mono text-indigo-600">
+                  ₹{item.amount ? item.amount.toLocaleString() : '0'}
+                </Text>
+              ) : (
+                <Text className="text-lg font-black font-mono text-emerald-600">
+                  +₹{item.paid ? item.paid.toLocaleString() : '0'}
+                </Text>
+              )}
+            </View>
           </View>
         </View>
 
