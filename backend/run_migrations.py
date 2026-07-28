@@ -26,15 +26,6 @@ def main():
     with engine.connect() as conn:
         result = conn.execute(text("SELECT id FROM public.organizations"))
         tenant_schemas = [build_schema_name(row[0]) for row in result.fetchall()]
-        
-    # Auto-fix any broken Alembic versions left behind by previous bugs
-    with engine.begin() as conn:
-        for schema in tenant_schemas:
-            try:
-                conn.execute(text(f"UPDATE \"{schema}\".alembic_version SET version_num = 'fcd17703ca13' WHERE version_num = 'e123456789ab'"))
-            except Exception:
-                pass
-    
     # Upgrade tenant schemas
     for schema in tenant_schemas:
         print(f"Upgrading tenant schema: {schema}")
