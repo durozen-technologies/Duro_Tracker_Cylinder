@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
     database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/Duro_Tracker"
     production: bool = False
+    enable_api_docs: bool = True
     secret_key: str = ""
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 90

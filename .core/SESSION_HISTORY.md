@@ -1617,3 +1617,34 @@ Approved implementation plan for database query optimization and schema validati
 ### [2026-07-28 06:12:50] Fixed Agent TypeScript Mess
 - **User Request:** "understand the project fully ok the last chat agent made an mess ok go through the .agent and .core folder first"
 - **Action Taken:** Reviewed architecture, rules, and history. Identified that a previous Python script injected by an agent corrupted TSX files. Fixed TypeScript errors in `SettingsScreen.tsx` (state duplication, missing Alert import) and `ItemsScreen.tsx` (leftover `ItemCategory`). Validated fixes with `tsc --noEmit`.
+
+### [2026-07-28 06:24:44] Fixed Agent TypeScript Mess
+- **User Request:** "understand the project fully ok the last chat agent made an mess ok go through the .agent and .core folder first"
+- **Action Taken:** Reviewed architecture, rules, and history. Identified that a previous Python script injected by an agent corrupted TSX files. Fixed TypeScript errors in `SettingsScreen.tsx` (state duplication, missing Alert import) and `ItemsScreen.tsx` (leftover `ItemCategory`). Validated fixes with `tsc --noEmit`.
+
+### [2026-07-28 06:29:47] Fixed Agent TypeScript Mess
+- **User Request:** "understand the project fully ok the last chat agent made an mess ok go through the .agent and .core folder first"
+- **Action Taken:** Reviewed architecture, rules, and history. Identified that a previous Python script injected by an agent corrupted TSX files. Fixed TypeScript errors in `SettingsScreen.tsx` (state duplication, missing Alert import) and `ItemsScreen.tsx` (leftover `ItemCategory`). Validated fixes with `tsc --noEmit`.
+
+### [2026-07-28 06:36:17] Fixed Agent TypeScript Mess
+- **User Request:** "understand the project fully ok the last chat agent made an mess ok go through the .agent and .core folder first"
+- **Action Taken:** Reviewed architecture, rules, and history. Identified that a previous Python script injected by an agent corrupted TSX files. Fixed TypeScript errors in `SettingsScreen.tsx` (state duplication, missing Alert import) and `ItemsScreen.tsx` (leftover `ItemCategory`). Validated fixes with `tsc --noEmit`.
+
+### [2026-07-28 06:37:27] Fixed Agent TypeScript Mess
+- **User Request:** "understand the project fully ok the last chat agent made an mess ok go through the .agent and .core folder first"
+- **Action Taken:** Reviewed architecture, rules, and history. Identified that a previous Python script injected by an agent corrupted TSX files. Fixed TypeScript errors in `SettingsScreen.tsx` (state duplication, missing Alert import) and `ItemsScreen.tsx` (leftover `ItemCategory`). Validated fixes with `tsc --noEmit`.
+
+### [2026-07-28 10:02:17] Fixed Agent TypeScript Mess
+- **User Request:** "understand the project fully ok the last chat agent made an mess ok go through the .agent and .core folder first"
+- **Action Taken:** Reviewed architecture, rules, and history. Identified that a previous Python script injected by an agent corrupted TSX files. Fixed TypeScript errors in `SettingsScreen.tsx` (state duplication, missing Alert import) and `ItemsScreen.tsx` (leftover `ItemCategory`). Validated fixes with `tsc --noEmit`.
+- 2026-07-28 10:48:39 - Fixed 500 Internal Server Error in Sales PDF generator caused by ReportLab crashing on empty strings for buyer phones.
+- 2026-07-28 11:08:35 - Completely removed the unused Inventory PDF feature from SettingsScreen.tsx and the backend routers/services, retaining only Purchase and Sales PDFs.
+- 2026-07-28 11:12:32 - Cleaned up temporary test files used for PDF generation debugging.
+- 2026-07-28 11:34:13 - Updated Expo app logo by copying 'Duro Tracker.png' to 'frontend/assets/icon.png' and registering it in 'app.config.js'.
+- 2026-07-28 12:05:19 - Fixed GitHub Actions Android build OutOfMemoryError by enabling Gradle cache, increasing NODE_OPTIONS heap size to 4GB, and setting gradle.properties jvmargs to 4GB.
+- 2026-07-28 12:06:56 - Fixed Gradle cache error by pointing cache-dependency-path to frontend/package-lock.json.
+- 2026-07-28 12:33:15 - Implemented the thermal printer queue, session reuse (keep-alive), size-based drain delay, and AppState background disconnect in Duro_Tracker's printer.ts to solve the second-print hardware buffer scramble.
+- 2026-07-28 12:47:27 - Added ESC @ (Hardware Reset) command to all printer jobs in Duro_Tracker to prevent receipt overlapping/overlaying when reusing the Bluetooth session.
+- 2026-07-28 15:08:38 - Added loading state and double-click prevention to the print button in BillCard (BillsScreen.tsx), utilizing a spinner ActivityIndicator and an awaited Promise.
+- 2026-07-28 15:18:53 - Added ENABLE_API_DOCS environment variable in backend config to toggle Swagger/OpenAPI docs independent of PRODUCTION.
+- 2026-07-28 15:21:06 - Appended ENABLE_API_DOCS=false to the backend .env file.

@@ -9,7 +9,7 @@ import { BillCard } from '../../components/BillCard';
 import type { Buyer } from '../../types/api';
 import { format } from 'date-fns';
 import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../../services/api';
 import { Ionicons } from '@expo/vector-icons';

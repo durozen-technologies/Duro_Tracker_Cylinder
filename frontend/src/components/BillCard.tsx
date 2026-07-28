@@ -1,9 +1,20 @@
-import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 
-export function BillCard({ item, handlePrint, handleSharePDF, itemsCatalog }: { item: any; handlePrint: (item: any) => void; handleSharePDF?: (item: any) => void; itemsCatalog?: any[] }) {
+export function BillCard({ item, handlePrint, handleSharePDF, itemsCatalog }: { item: any; handlePrint: (item: any) => Promise<void> | void; handleSharePDF?: (item: any) => void; itemsCatalog?: any[] }) {
+  const [isPrinting, setIsPrinting] = useState(false);
+
+  const onPrintPress = async () => {
+    setIsPrinting(true);
+    try {
+      await handlePrint(item);
+    } finally {
+      setIsPrinting(false);
+    }
+  };
+
   if (!item) return null;
   const isCollectionBill = !item.items || item.items.length === 0;
   const currentBalance = item.buyer?.balance_pending || 0;
@@ -39,8 +50,12 @@ export function BillCard({ item, handlePrint, handleSharePDF, itemsCatalog }: { 
               <Ionicons name="share-social" size={20} color="#4f46e5" />
             </TouchableOpacity>
           )}
-          <TouchableOpacity onPress={() => handlePrint(item)} className="p-2.5 bg-blue-50 rounded-xl border border-blue-100 active:bg-blue-100">
-            <Ionicons name="print" size={20} color="#2563eb" />
+          <TouchableOpacity onPress={onPrintPress} disabled={isPrinting} className={`p-2.5 bg-blue-50 rounded-xl border border-blue-100 ${isPrinting ? 'opacity-50' : 'active:bg-blue-100'}`}>
+            {isPrinting ? (
+              <ActivityIndicator size="small" color="#2563eb" />
+            ) : (
+              <Ionicons name="print" size={20} color="#2563eb" />
+            )}
           </TouchableOpacity>
         </View>
       </View>

@@ -1,4 +1,4 @@
-import { NativeModules, PermissionsAndroid, Platform } from "react-native";
+import { AppState, NativeModules, PermissionsAndroid, Platform } from "react-native";
 import {
   type IBLEPrinter,
   type PrinterImageOptions as NativePrinterImageOptions,
@@ -36,7 +36,7 @@ type PrinterRuntime = {
   connect: (device: PrinterDevice) => Promise<void>;
   closeConn: () => Promise<void>;
   printBill: (text: string, options?: PrinterOptions) => Promise<void>;
-  printImageBase64: (base64: string, options?: NativePrinterImageOptions) => Promise<void>;
+  printImageBase64: (base64: string, options?: NativePrinterImageOptions & { isLastSlice?: boolean }) => Promise<void>;
 };
 
 export type DeliveryReceiptItem = {
@@ -407,9 +407,11 @@ function getPrintImageSliceOptions(
 function waitForImagePrintDispatch(
   dispatch: (options: NativePrinterOptions) => void,
   options: PrinterOptions = {},
+  isLastSlice = false,
 ) {
   // Image printing takes longer than text on many thermal drivers.
-  return waitForPrintDispatch(dispatch, options, 900);
+  // Wait 1800ms for mid-slices, 2000ms for the last slice to prevent buffer overflow
+  return waitForPrintDispatch(dispatch, options, isLastSlice ? 2000 : 1800);
 }
 
 function normalizeBluetoothPrinter(printer: IBLEPrinter): PrinterDevice {
@@ -480,6 +482,7 @@ function createBluetoothRuntime(): PrinterRuntime {
             ...options,
           }),
         options,
+        options.isLastSlice
       ),
   };
 }
@@ -538,20 +541,106 @@ async function connectWithRetry(
   }
 }
 
-async function withPrinterConnection<T>(
-  device: PrinterDevice,
-  run: (printer: PrinterRuntime) => Promise<T>,
-) {
-  const printer = await getPrinterRuntime(device);
+type ActivePrinterSession = {
+  device: PrinterDevice;
+  runtime: PrinterRuntime;
+};
 
-  await closePrinterConnection(printer);
-  await connectWithRetry(printer, device);
+let activePrinterSession: ActivePrinterSession | null = null;
+let printerIdleTimer: NodeJS.Timeout | null = null;
+let printerJobQueue: (() => Promise<void>)[] = [];
+let isPrinting = false;
+
+// When the app goes to background, disconnect the printer to avoid holding Bluetooth hostage
+AppState.addEventListener("change", (nextAppState) => {
+  if (nextAppState.match(/inactive|background/)) {
+    if (activePrinterSession) {
+      closePrinterConnection(activePrinterSession.runtime).catch(() => {});
+      activePrinterSession = null;
+    }
+    if (printerIdleTimer) {
+      clearTimeout(printerIdleTimer);
+      printerIdleTimer = null;
+    }
+  }
+});
+
+async function processPrinterQueue() {
+  if (isPrinting) {
+    return;
+  }
+
+  const job = printerJobQueue.shift();
+  if (!job) {
+    // Queue is empty, start idle timer to disconnect after 15 seconds of inactivity
+    if (!printerIdleTimer && activePrinterSession) {
+      printerIdleTimer = setTimeout(() => {
+        if (activePrinterSession) {
+          closePrinterConnection(activePrinterSession.runtime).catch(() => {});
+          activePrinterSession = null;
+        }
+        printerIdleTimer = null;
+      }, 15000);
+    }
+    return;
+  }
+
+  isPrinting = true;
+  // Clear the idle timer since we are actively printing
+  if (printerIdleTimer) {
+    clearTimeout(printerIdleTimer);
+    printerIdleTimer = null;
+  }
 
   try {
-    return await run(printer);
+    await job();
+  } catch (error) {
+    console.error("Printer Job Error:", error);
   } finally {
-    await closePrinterConnection(printer);
+    isPrinting = false;
+    // Process next job
+    processPrinterQueue();
   }
+}
+
+function enqueuePrinterJob<T>(
+  job: () => Promise<T>,
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    printerJobQueue.push(async () => {
+      try {
+        const result = await job();
+        resolve(result);
+      } catch (error) {
+        reject(error);
+      }
+    });
+
+    processPrinterQueue();
+  });
+}
+
+async function getOrCreatePrinterSession(device: PrinterDevice): Promise<PrinterRuntime> {
+  // If we already have a session for a DIFFERENT printer, close it first
+  if (activePrinterSession && activePrinterSession.device.id !== device.id) {
+    await closePrinterConnection(activePrinterSession.runtime).catch(() => {});
+    activePrinterSession = null;
+  }
+
+  // If we don't have a session, create and connect
+  if (!activePrinterSession) {
+    const runtime = await getPrinterRuntime(device);
+    // Disconnect just in case an old ghost connection exists
+    await closePrinterConnection(runtime);
+    await connectWithRetry(runtime, device);
+    
+    activePrinterSession = {
+      device,
+      runtime,
+    };
+  }
+
+  return activePrinterSession.runtime;
 }
 
 export function getPrinterSupportState(): PrinterSupportState {
@@ -595,13 +684,21 @@ export async function loadUsbPrinters() {
 }
 
 export async function connectPrinterDevice(device: PrinterDevice) {
-  await withPrinterConnection(device, async () => undefined);
-  return device;
+  return enqueuePrinterJob(async () => {
+    await getOrCreatePrinterSession(device);
+    return device;
+  });
 }
 
 export async function printTestReceipt(device: PrinterDevice) {
-  await withPrinterConnection(device, async (printer) => {
-    await printer.printBill(buildTestReceipt(device));
+  return enqueuePrinterJob(async () => {
+    const printer = await getOrCreatePrinterSession(device);
+    const payload = buildTestReceipt(device);
+    await printer.printBill(payload);
+
+    // Dynamic buffer drain delay
+    const drainDelay = Math.max(1200, Math.min(6000, Math.floor((payload.length / 2500) * 1000)));
+    await new Promise((resolve) => setTimeout(resolve, drainDelay));
   });
 }
 
@@ -609,8 +706,14 @@ export async function printDeliveryReceipt(
   data: DeliveryReceiptData,
   device: PrinterDevice,
 ) {
-  await withPrinterConnection(device, async (printer) => {
-    await printer.printBill(buildPrintableReceipt(data));
+  return enqueuePrinterJob(async () => {
+    const printer = await getOrCreatePrinterSession(device);
+    const payload = buildPrintableReceipt(data);
+    await printer.printBill(payload);
+
+    // Dynamic buffer drain delay
+    const drainDelay = Math.max(1200, Math.min(6000, Math.floor((payload.length / 2500) * 1000)));
+    await new Promise((resolve) => setTimeout(resolve, drainDelay));
   });
 }
 
@@ -622,12 +725,18 @@ export async function printReceiptImageBase64WithPrinter(
     return;
   }
 
-  await withPrinterConnection(device, async (printer) => {
+  return enqueuePrinterJob(async () => {
+    const printer = await getOrCreatePrinterSession(device);
+
     for (let index = 0; index < base64Chunks.length; index += 1) {
       const base64Chunk = base64Chunks[index];
+      const isLastSlice = index === base64Chunks.length - 1;
       await printer.printImageBase64(
         base64Chunk,
-        getPrintImageSliceOptions(index, base64Chunks.length),
+        {
+          ...getPrintImageSliceOptions(index, base64Chunks.length),
+          isLastSlice
+        }
       );
     }
   });

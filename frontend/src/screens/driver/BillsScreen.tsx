@@ -102,7 +102,7 @@ export default function BillsScreen() {
 
   const displayedHistory = history;
 
-  const handlePrint = (item: any) => {
+  const handlePrint = async (item: any) => {
     if (!preferredPrinter) {
       Alert.alert(
         "No Printer",
@@ -169,9 +169,11 @@ export default function BillsScreen() {
       cylinder_balances: cylinderBalances,
     };
 
-    startReceiptImagePrintJob([receiptData], preferredPrinter).catch((err) => {
+    try {
+      await startReceiptImagePrintJob([receiptData], preferredPrinter);
+    } catch (err: any) {
       Alert.alert("Print Error", err.message || "Failed to print receipt");
-    });
+    }
   };
 
   const handleSharePDF = async (item: any) => {
