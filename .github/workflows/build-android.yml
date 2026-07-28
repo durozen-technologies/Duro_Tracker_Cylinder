@@ -42,6 +42,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+          cache: 'gradle'
 
       - name: Install Frontend Dependencies
         working-directory: ./frontend
@@ -58,7 +59,11 @@ jobs:
 
       - name: Build Release APK with Gradle
         working-directory: ./frontend/android
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
         run: |
+          echo "org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8" >> gradle.properties
+          echo "org.gradle.workers.max=2" >> gradle.properties
           chmod +x gradlew
           ./gradlew :app:assembleRelease --no-daemon
 
