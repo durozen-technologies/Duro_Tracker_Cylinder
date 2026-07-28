@@ -41,7 +41,7 @@ def main():
         os.environ["ALEMBIC_MODE"] = "tenant_upgrade"
         os.environ["CURRENT_TENANT"] = schema
         alembic_cfg = Config("alembic.ini")
-        alembic_cfg.set_main_option("version_locations", "migrations/versions/public;migrations/versions/tenant")
+        alembic_cfg.set_main_option("version_locations", f"migrations/versions/public{os.pathsep}migrations/versions/tenant")
         command.upgrade(alembic_cfg, "head")
 
 if __name__ == "__main__":
