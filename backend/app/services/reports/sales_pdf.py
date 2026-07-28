@@ -128,9 +128,10 @@ def generate_sales_pdf(data: SalesPdfData) -> BytesIO:
     buyer_info = [
         Paragraph("<b>BILLED TO:</b>", ParagraphStyle('BilledTo', parent=normal_text_style, fontName='Helvetica-Bold', fontSize=10, textColor=colors.HexColor('#777777'))),
         Spacer(1, 4),
-        Paragraph(f"<b>{data.buyer_name}</b>", ParagraphStyle('BuyerName', parent=normal_text_style, fontName='Helvetica-Bold', fontSize=12, textColor=colors.black)),
-        Paragraph(f"Phone: {data.buyer_phone}", normal_text_style) if data.buyer_phone else ""
+        Paragraph(f"<b>{data.buyer_name}</b>", ParagraphStyle('BuyerName', parent=normal_text_style, fontName='Helvetica-Bold', fontSize=12, textColor=colors.black))
     ]
+    if data.buyer_phone:
+        buyer_info.append(Paragraph(f"Phone: {data.buyer_phone}", normal_text_style))
     
     date_info = [
         Paragraph("<b>REPORT PERIOD:</b>", ParagraphStyle('PeriodLabel', parent=normal_text_style, fontName='Helvetica-Bold', fontSize=10, textColor=colors.HexColor('#777777'), alignment=TA_RIGHT)),
