@@ -38,6 +38,14 @@ def include_object_tenant(object, name, type_, reflected, compare_to):
         return False
     return True
 
+def render_item(type_, obj, autogen_context):
+    """Strip schema='tenant' during autogeneration so it doesn't hardcode it into the migration file"""
+    if type_ == "table_schema" and obj.schema == "tenant":
+        return False
+    
+    # Let Alembic render everything else normally
+    return False
+
 def do_run_migrations(connection: Connection, tenant_schemas: list[str]) -> None:
     import os
     alembic_mode = os.environ.get("ALEMBIC_MODE", "upgrade")
@@ -60,15 +68,28 @@ def do_run_migrations(connection: Connection, tenant_schemas: list[str]) -> None
         with context.begin_transaction():
             context.run_migrations()
     elif alembic_mode == "tenant":
-        tenant_conn = connection.execution_options(schema_translate_map={"tenant": "public"})
+        # For autogenerating tenant migrations, use an active tenant schema if possible
+        # so Alembic reads the correct alembic_version table
+        from sqlalchemy import text
+        tenant_schema = "public"
+        result = connection.execute(text("SELECT id FROM public.organizations LIMIT 1")).scalar()
+        if result:
+            from app.db.tenant_schema import build_schema_name
+            tenant_schema = build_schema_name(result)
+        
+        tenant_conn = connection.execution_options(schema_translate_map={"tenant": tenant_schema})
+        tenant_conn.execute(text(f'SET search_path TO "{tenant_schema}"'))
+        
         context.configure(
             connection=tenant_conn, 
             target_metadata=target_metadata,
             compare_type=True,
             include_schemas=False,
             include_object=include_object_tenant,
-            schema_translate_map={"tenant": "public"},
+            schema_translate_map={"tenant": tenant_schema},
             version_locations=[tenant_version_loc],
+            version_table_schema=tenant_schema if tenant_schema != "public" else None,
+            render_item=render_item,
         )
         with context.begin_transaction():
             context.run_migrations()
@@ -85,7 +106,7 @@ def do_run_migrations(connection: Connection, tenant_schemas: list[str]) -> None
             include_object=include_object_tenant,
             version_table_schema=schema_name,
             schema_translate_map={"tenant": schema_name},
-            version_locations=[public_version_loc, tenant_version_loc],
+            version_locations=[tenant_version_loc],
         )
         with context.begin_transaction():
             context.run_migrations()
@@ -120,7 +141,7 @@ def do_run_migrations(connection: Connection, tenant_schemas: list[str]) -> None
                 include_object=include_object_tenant,
                 version_table_schema=schema_name,
                 schema_translate_map={"tenant": schema_name},
-                version_locations=[public_version_loc, tenant_version_loc],
+                version_locations=[tenant_version_loc],
             )
             with context.begin_transaction():
                 context.run_migrations()
