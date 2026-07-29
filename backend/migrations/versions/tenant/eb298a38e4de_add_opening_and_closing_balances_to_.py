@@ -20,8 +20,8 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
-    op.add_column('purchase_bills', sa.Column('opening_balance', sa.Numeric(precision=12, scale=2), nullable=True))
-    op.add_column('purchase_bills', sa.Column('closing_balance', sa.Numeric(precision=12, scale=2), nullable=True))
+    op.execute("ALTER TABLE purchase_bills ADD COLUMN IF NOT EXISTS opening_balance NUMERIC(12, 2);")
+    op.execute("ALTER TABLE purchase_bills ADD COLUMN IF NOT EXISTS closing_balance NUMERIC(12, 2);")
 
 def downgrade() -> None:
     """Downgrade schema."""
