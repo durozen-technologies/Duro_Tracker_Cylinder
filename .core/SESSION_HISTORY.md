@@ -1649,3 +1649,63 @@ Approved implementation plan for database query optimization and schema validati
 - 2026-07-28 15:18:53 - Added ENABLE_API_DOCS environment variable in backend config to toggle Swagger/OpenAPI docs independent of PRODUCTION.
 - 2026-07-28 15:21:06 - Appended ENABLE_API_DOCS=false to the backend .env file.
 - 2026-07-28 15:31:20 - Added project details to the root (/) GET endpoint in main.py.
+
+### [2026-07-29 09:23:16] Redesigned LoginScreen
+- User requested to redesign the LoginScreen using frontend-ui-engineering skill and app logo.
+- Analyzed LoginScreen.tsx, created implementation_plan.md.
+- Replaced dummy DT text with assets/Logo.png using React Native Image.
+- Updated styling for a cleaner aesthetic (reduced border radius to 2xl, added focus rings).
+- Migrated error handling from standard Alert to CustomAlert component.
+
+### [2026-07-29 09:26:15] Custom Logo Injection
+- Copied Duro Tracker.png from user Downloads to assets/duro-tracker-logo.png.
+- Updated LoginScreen.tsx to use the new logo and increased the image container size to 32x32 for better visibility.
+
+### [2026-07-29 09:27:17] Swap KeyboardAvoidingView
+- Swapped KeyboardAvoidingView for KeyboardAwareScrollView in LoginScreen.tsx for better Android form handling.
+
+### [2026-07-29 09:28:55] Disabled Admin Dashboard Scrolling
+- Replaced ScrollView with View in DashboardScreen.tsx at user request to make the layout fixed/non-scrollable.
+
+### [2026-07-29 09:38:09] Dashboard Deep Linking
+- Added route param handling to BuyersScreen.tsx to allow deep-linking directly into the Global Daily Bills tab.
+- Wired up the View All button on DashboardScreen.tsx to navigate to BuyersScreen with screenTab=bills param.
+
+### [2026-07-29 09:41:25] Refactored Purchase History to Card View
+- Changed the purchase history UI in PurchasesScreen.tsx from a horizontal scrolling table to a modern vertical Card View layout, matching the styling used for Bills.
+
+### [2026-07-29 09:46:07] Design System Alignment (Purchase Cards)
+- Replaced the temporary AI-aesthetic Purchase Card in PurchasesScreen.tsx with a strict implementation of the global zinc-based design system found in BillCard.tsx.
+
+### [2026-07-29 09:49:43] Redesigned Purchases History
+- Converted the horizontal table layout in PurchasesScreen.tsx to a vertical Card layout matching the UI logic of BillCard.tsx from the Buyers section. Followed frontend-ui-engineering practices (using zinc tokens, consistent padding, and clear hierarchy).
+
+### [2026-07-29 09:51:10] Fixed Purchases History Scroll
+- Enabled vertical scrolling on the FlatList in PurchasesScreen.tsx by removing scrollEnabled={false} which was a leftover prop from the old horizontal table design.
+
+### [2026-07-29 09:53:27] Fixed Purchases History Clipping
+- Removed excessive nested margins/paddings (pb-20, mb-6, and screen bottom padding) on the parent containers in PurchasesScreen.tsx so the FlatList can properly extend all the way down to the bottom tab bar.
+
+### [2026-07-29 10:00:18] Added Purchase Amount Validation
+- Added logic in PurchasesScreen.tsx handleSavePurchase to ensure mountPaid does not exceed calculatedTotalCost + selectedProvider.balance_pending.
+
+### [2026-07-29 10:08:18] Fixed Agent TypeScript Mess
+- **User Request:** "understand the project fully ok the last chat agent made an mess ok go through the .agent and .core folder first"
+- **Action Taken:** Reviewed architecture, rules, and history. Identified that a previous Python script injected by an agent corrupted TSX files. Fixed TypeScript errors in `SettingsScreen.tsx` (state duplication, missing Alert import) and `ItemsScreen.tsx` (leftover `ItemCategory`). Validated fixes with `tsc --noEmit`.
+
+### [2026-07-29 10:11:31] Fixed Agent TypeScript Mess
+- **User Request:** "understand the project fully ok the last chat agent made an mess ok go through the .agent and .core folder first"
+- **Action Taken:** Reviewed architecture, rules, and history. Identified that a previous Python script injected by an agent corrupted TSX files. Fixed TypeScript errors in `SettingsScreen.tsx` (state duplication, missing Alert import) and `ItemsScreen.tsx` (leftover `ItemCategory`). Validated fixes with `tsc --noEmit`.
+
+### [2026-07-29 10:18:07] Fixed Agent TypeScript Mess
+- **User Request:** "understand the project fully ok the last chat agent made an mess ok go through the .agent and .core folder first"
+- **Action Taken:** Reviewed architecture, rules, and history. Identified that a previous Python script injected by an agent corrupted TSX files. Fixed TypeScript errors in `SettingsScreen.tsx` (state duplication, missing Alert import) and `ItemsScreen.tsx` (leftover `ItemCategory`). Validated fixes with `tsc --noEmit`.
+
+- **[2026-07-29 10:35:06]**: Added `price_per_kg` snapshot to `PurchaseBill` model and API, implemented frontend UI to show historical price_per_kg on purchase cards, and backfilled data via manual DB scripts.
+- **[2026-07-29 10:42:53]**: Added `price_per_kg` snapshot to `PurchaseBill` model and API, implemented frontend UI to show historical price_per_kg on purchase cards, and backfilled data via manual DB scripts.
+### [2026-07-29 10:47:00] Fixed Dashboard & Purchase Scrolling
+- **Action Taken:** Limited the Recent Activity feed in the Dashboard to 4 items max. Fixed the Purchases CRM scrolling issue by refactoring the `FlatList` to use a `ListHeaderComponent` instead of nesting it in a flex container that blocked scrolling for the top-level cards.
+
+### [2026-07-29 11:10:00] Provider Purchases Pagination
+- **User Request:** Implemented backend pagination for the Provider Purchases CRM view to reduce global load and improve scalability.
+- **Action Taken:** Updated `GET /purchase/` to accept `provider_id`. Created a specialized `useProviderPurchases` hook. Rewired `PurchasesScreen.tsx` to automatically pull pages mapped strictly to the active provider, bypassing the heavy local cache filtering completely.

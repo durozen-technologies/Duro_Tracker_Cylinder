@@ -20,8 +20,8 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
-    op.create_index('idx_ledger_pagination', 'delivery_bills', ['buyer_id', 'id'], unique=False, schema='tenant')
-    op.create_index('idx_driver_pagination', 'delivery_bills', ['driver_id', 'id'], unique=False, schema='tenant')
+    op.execute("CREATE INDEX IF NOT EXISTS idx_ledger_pagination ON tenant.delivery_bills (buyer_id, id);")
+    op.execute("CREATE INDEX IF NOT EXISTS idx_driver_pagination ON tenant.delivery_bills (driver_id, id);")
 
 
 def downgrade() -> None:

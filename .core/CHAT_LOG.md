@@ -2610,3 +2610,76 @@ hi understand the project fully ok the last chat agent made an mess ok go throug
 Reviewed the `.core` and `.agents` folders. Discovered that the last agent's automated script resulted in TypeScript errors in `SettingsScreen.tsx` and `ItemsScreen.tsx`.
 Ran `npx tsc --noEmit` to locate all errors.
 Fixed missing imports and duplicate state variables. Re-ran `tsc --noEmit` which completed successfully.
+
+## [2026-07-29 09:23:16]
+**User:** /frontend-ui-engineering improve the loginscreen and use the app logo in the login screen to tell me first what are you going to do
+**Agent:** Created implementation plan for LoginScreen. After approval, executed the changes: embedded Logo.png, improved styling, implemented CustomAlert for better error messaging.
+
+## [2026-07-29 09:26:15]
+**User:** C:\Users\sound\Downloads\Duro Tracker.png use this in the login screen
+**Agent:** Copied the user provided image to the assets folder and updated LoginScreen.tsx to use it.
+
+## [2026-07-29 09:27:17]
+**User:** did we also add the keyboardaware view in the login page to ?
+**Agent:** Upgraded LoginScreen to use KeyboardAwareScrollView instead of KeyboardAvoidingView.
+
+## [2026-07-29 09:28:55]
+**User:** next in the admin dashboard should be not scroll able
+**Agent:** Updated the Admin DashboardScreen.tsx to use a static View instead of a ScrollView, freezing the layout.
+
+## [2026-07-29 09:38:09]
+**User:** ok in the admin dashboard if i click view all it should take to buyer global daily bills
+**Agent:** Updated BuyersScreen to accept a screenTab route param and wired up the View All button on the dashboard to navigate there.
+
+## [2026-07-29 09:41:25]
+**User:** in the purchase page the purchase history make it to the card view ok
+**Agent:** Updated the purchase history list in PurchasesScreen.tsx to render as stylish, vertically stacked cards instead of a horizontal table.
+
+## [2026-07-29 09:46:07]
+**User:** /frontend-ui-engineering tell me what are you going to do what is this buddy use the same theme used in the app
+**Agent:** Apologized for the inconsistent design and completely rewrote the Purchase History card to exactly match the global app theme (zinc colors, identical layout structure) used in BillCard.tsx.
+
+## [2026-07-29 09:49:43]
+**User:** in the purchase page the purchase history make it to the card view ok use the same card format in the buyer total sales total paid card type ok
+**Agent:** Implemented the Card layout on the PurchasesScreen. Removed horizontal scroll tables and replaced them with polished, vertically stacked UI cards.
+
+## [2026-07-29 09:51:10]
+**User:** tha scroll is not working correctly check it
+**Agent:** Removed scrollEnabled={false} from the FlatList, fixing the vertical scroll on the new Purchase History cards.
+
+## [2026-07-29 10:00:18]
+**User:** ok in the record purchase amount field should not exceed the that bill amount and the total outstanding
+**Agent:** Added a validation check to handleSavePurchase in PurchasesScreen.tsx. If the user tries to pay more than the combined total of the current bill and the provider's outstanding balance, it blocks the save and shows an alert.
+
+---
+### [2026-07-29 10:08:18]
+**User:**
+hi understand the project fully ok the last chat agent made an mess ok go through the .agent and .core folder first
+
+**Agent:**
+Reviewed the `.core` and `.agents` folders. Discovered that the last agent's automated script resulted in TypeScript errors in `SettingsScreen.tsx` and `ItemsScreen.tsx`.
+Ran `npx tsc --noEmit` to locate all errors.
+Fixed missing imports and duplicate state variables. Re-ran `tsc --noEmit` which completed successfully.
+
+---
+### [2026-07-29 10:11:31]
+**User:**
+hi understand the project fully ok the last chat agent made an mess ok go through the .agent and .core folder first
+
+**Agent:**
+Reviewed the `.core` and `.agents` folders. Discovered that the last agent's automated script resulted in TypeScript errors in `SettingsScreen.tsx` and `ItemsScreen.tsx`.
+Ran `npx tsc --noEmit` to locate all errors.
+Fixed missing imports and duplicate state variables. Re-ran `tsc --noEmit` which completed successfully.
+
+---
+### [2026-07-29 10:18:07]
+**User:**
+hi understand the project fully ok the last chat agent made an mess ok go through the .agent and .core folder first
+
+**Agent:**
+Reviewed the `.core` and `.agents` folders. Discovered that the last agent's automated script resulted in TypeScript errors in `SettingsScreen.tsx` and `ItemsScreen.tsx`.
+Ran `npx tsc --noEmit` to locate all errors.
+Fixed missing imports and duplicate state variables. Re-ran `tsc --noEmit` which completed successfully.
+
+- **[2026-07-29 10:35:06]**: User asked to add price_per_kg snapshot to purchase bill cards. Added column to DB, updated Pydantic schemas, and modified React Native UI to pass and display the price pill.
+- **[2026-07-29 10:42:53]**: User asked to add price_per_kg snapshot to purchase bill cards. Added column to DB, updated Pydantic schemas, and modified React Native UI to pass and display the price pill.

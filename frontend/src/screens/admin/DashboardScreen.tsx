@@ -1,9 +1,8 @@
 import React, { useCallback } from "react";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import {
   View,
   Text,
-  ScrollView,
   Pressable,
   ActivityIndicator,
 } from "react-native";
@@ -25,6 +24,7 @@ import {
 import { formatDistanceToNow } from "date-fns";
 
 export default function DashboardScreen() {
+  const navigation = useNavigation<any>();
   const {
     data: metrics,
     isLoading: isMetricsLoading,
@@ -47,7 +47,7 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-gray-50">
-      <ScrollView className="flex-1 p-4" contentContainerStyle={{ paddingBottom: 100 }}>
+      <View className="flex-1 p-4">
       <View className="mb-6 flex flex-row items-center justify-between">
         <Text className="text-2xl font-bold text-slate-900">Dashboard</Text>
         <Pressable
@@ -148,7 +148,10 @@ export default function DashboardScreen() {
           <Text className="text-base font-bold text-slate-900">
             Recent Activity
           </Text>
-          <Pressable className="bg-indigo-50 px-3 py-1.5 rounded-full">
+          <Pressable 
+            className="bg-indigo-50 px-3 py-1.5 rounded-full"
+            onPress={() => navigation.navigate("Buyers", { screenTab: "bills" })}
+          >
             <Text className="text-indigo-600 text-xs font-semibold">
               View All
             </Text>
@@ -166,7 +169,7 @@ export default function DashboardScreen() {
               No recent activity
             </Text>
           ) : (
-            activityData.map((activity) => {
+            activityData.slice(0, 4).map((activity) => {
               let formattedTime = "N/A";
               try {
                 if (activity?.timestamp) {
@@ -234,7 +237,7 @@ export default function DashboardScreen() {
           )}
         </View>
       </View>
-    </ScrollView>
+    </View>
     </SafeAreaView>
   );
 }

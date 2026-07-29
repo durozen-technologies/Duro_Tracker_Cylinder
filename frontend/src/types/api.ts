@@ -141,6 +141,9 @@ export interface PurchaseBill {
   bill_number?: string;
   total_cost: number;
   amount_paid: number;
+  opening_balance?: number;
+  closing_balance?: number;
+  price_per_kg?: number;
   created_at: string;
   entries: PurchaseEntry[];
 }

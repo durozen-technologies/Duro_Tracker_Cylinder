@@ -119,11 +119,17 @@ async def create_purchase_bill(
         if bill_timestamp.tzinfo is None:
             bill_timestamp = bill_timestamp.replace(tzinfo=datetime.UTC)
 
+        opening_balance = float(provider.balance_pending)
+        closing_balance = opening_balance + float(bill_in.total_cost) - float(bill_in.amount_paid)
+
         bill = PurchaseBill(
             provider_id=bill_in.provider_id,
             bill_number=bill_in.bill_number,
             total_cost=bill_in.total_cost,
             amount_paid=bill_in.amount_paid,
+            opening_balance=opening_balance,
+            closing_balance=closing_balance,
+            price_per_kg=bill_in.price_per_kg,
             idempotency_key=x_idempotency_key,
             created_at=bill_timestamp
         )
@@ -188,9 +194,13 @@ async def list_purchase_bills(
     paginated: bool = False,
     cursor: uuid.UUID | None = None,
     limit: int = 20,
+    provider_id: uuid.UUID | None = None,
     db: AsyncSession = Depends(get_tenant_db),
 ):
     query = select(PurchaseBill).options(selectinload(PurchaseBill.entries))
+    
+    if provider_id:
+        query = query.filter(PurchaseBill.provider_id == provider_id)
     
     if paginated:
         if cursor:

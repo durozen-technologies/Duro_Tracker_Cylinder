@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, Pressable, ScrollView, FlatList, Modal, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { Plus, X, Search, Store, ArrowLeft, Download, FileText, Receipt, Edit2, Trash2, RefreshCw, PackageOpen } from 'lucide-react-native';
 
 import { useBuyers, useCreateBuyer, useUpdateBuyer, useDeleteBuyer, useGlobalBills, useBuyerLedger, useGlobalBillsPaginated } from '../../hooks/useBuyers';
@@ -16,8 +17,18 @@ import { Ionicons } from '@expo/vector-icons';
 
 
 export default function BuyersScreen() {
+  const route = useRoute<RouteProp<Record<string, { screenTab?: 'crm' | 'bills' }>, string>>();
   const { data: buyers = [], isLoading, refetch: refetchBuyers, isRefetching: isBuyersRefetching } = useBuyers();
-  const [activeTab, setActiveTab] = useState<'crm' | 'bills'>('crm');
+  const [activeTab, setActiveTab] = useState<'crm' | 'bills'>(route.params?.screenTab || 'crm');
+  
+  useFocusEffect(
+    useCallback(() => {
+      if (route.params?.screenTab) {
+        setActiveTab(route.params.screenTab);
+      }
+    }, [route.params?.screenTab])
+  );
+  
   const [globalBillsTab, setGlobalBillsTab] = useState<'ALL' | 'SALES' | 'COLLECTIONS'>('ALL');
   const { 
     data: globalBillsPages, 

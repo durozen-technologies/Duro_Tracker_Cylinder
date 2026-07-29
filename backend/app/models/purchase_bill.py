@@ -29,6 +29,10 @@ class PurchaseBill(Base, BaseModelMixin):
     total_cost: Mapped[float] = mapped_column(Numeric(12, 2), default=0.0)
     amount_paid: Mapped[float] = mapped_column(Numeric(12, 2), default=0.0)
     
+    opening_balance: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+    closing_balance: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+    price_per_kg: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
+    
     # Relationship to entries
     entries: Mapped[list["PurchaseEntry"]] = relationship("PurchaseEntry", back_populates="bill", cascade="all, delete-orphan", lazy="selectin")
     provider: Mapped["Provider"] = relationship("Provider")

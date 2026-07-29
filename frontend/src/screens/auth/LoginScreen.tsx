@@ -5,22 +5,34 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
-  KeyboardAvoidingView,
   Platform,
-  Alert,
+  Image,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../services/api";
+import CustomAlert from "../../components/CustomAlert";
 
 export default function LoginScreen() {
   const { login } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({
+    visible: false,
+    title: "",
+    message: "",
+    type: "error" as "error" | "success" | "info"
+  });
 
   const handleLogin = async () => {
     if (!username || !password) {
-      Alert.alert("Error", "Please enter both username and password.");
+      setAlertConfig({
+        visible: true,
+        title: "Login Failed",
+        message: "Please enter both username and password.",
+        type: "error"
+      });
       return;
     }
 
@@ -41,25 +53,31 @@ export default function LoginScreen() {
       await login(access_token);
     } catch (error: any) {
       console.error("Login error", error);
-      Alert.alert(
-        "Login Failed",
-        error.response?.data?.detail || "Invalid credentials or server error.",
-      );
+      setAlertConfig({
+        visible: true,
+        title: "Login Failed",
+        message: error.response?.data?.detail || "Invalid credentials or server error.",
+        type: "error"
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      className="flex-1 bg-zinc-50 justify-center items-center px-4"
+    <KeyboardAwareScrollView
+      contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
+      className="bg-zinc-50 px-4"
+      enableOnAndroid={true}
+      keyboardShouldPersistTaps="handled"
     >
-      <View className="w-full max-w-sm bg-white p-8 rounded-[32px] shadow-sm border border-zinc-100">
+      <View className="w-full max-w-sm bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
         <View className="items-center mb-8">
-          <View className="w-16 h-16 bg-blue-50 rounded-2xl items-center justify-center mb-4 border border-blue-100">
-            <Text className="text-blue-600 text-2xl font-bold">DT</Text>
-          </View>
+          <Image 
+            source={require('../../../assets/duro-tracker-logo.png')} 
+            className="w-32 h-32 mb-4" 
+            resizeMode="contain" 
+          />
           <Text className="text-3xl font-bold text-zinc-900 mb-2 tracking-tight">
             Duro Tracker
           </Text>
@@ -74,13 +92,14 @@ export default function LoginScreen() {
               Username
             </Text>
             <TextInput
-              className="bg-zinc-50 text-zinc-900 px-4 py-3.5 rounded-xl border border-zinc-200 focus:border-blue-500 focus:bg-white"
+              className="bg-zinc-50 text-zinc-900 px-4 py-3.5 rounded-xl border border-zinc-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:bg-white"
               placeholder="Enter your username"
               placeholderTextColor="#a1a1aa"
               value={username}
               onChangeText={setUsername}
               autoCapitalize="none"
               autoCorrect={false}
+              accessibilityLabel="Username Input"
             />
           </View>
 
@@ -89,12 +108,13 @@ export default function LoginScreen() {
               Password
             </Text>
             <TextInput
-              className="bg-zinc-50 text-zinc-900 px-4 py-3.5 rounded-xl border border-zinc-200 focus:border-blue-500 focus:bg-white"
+              className="bg-zinc-50 text-zinc-900 px-4 py-3.5 rounded-xl border border-zinc-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:bg-white"
               placeholder="Enter your password"
               placeholderTextColor="#a1a1aa"
               value={password}
               onChangeText={setPassword}
               secureTextEntry
+              accessibilityLabel="Password Input"
             />
           </View>
         </View>
@@ -116,6 +136,14 @@ export default function LoginScreen() {
           )}
         </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+
+      <CustomAlert 
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+      />
+    </KeyboardAwareScrollView>
   );
 }

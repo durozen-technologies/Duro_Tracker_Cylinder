@@ -3,7 +3,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, Pressable, ScrollView, FlatList, Modal, TextInput, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Plus, X, Search, Store, ArrowLeft, Download, FileText, Receipt, PackageOpen, Truck, RefreshCw, Edit, PauseCircle, CheckCircle } from 'lucide-react-native';
-import { usePurchases, useProviders, useCreatePurchase, useCreateProvider, useUpdateProvider } from '../../hooks/usePurchases';
+import { useProviderPurchases, useProviders, useCreatePurchase, useCreateProvider, useUpdateProvider } from '../../hooks/usePurchases';
 import { useItems } from '../../hooks/useItems';
 import type { Provider } from '../../types/api';
 import CustomAlert from '../../components/CustomAlert';
@@ -11,22 +11,22 @@ import CustomAlert from '../../components/CustomAlert';
 export default function PurchasesScreen() {
   const [selectedProviderId, setSelectedProviderId] = useState<string | null>(null);
   const { 
-    data: purchasesData = [], 
+    data: providerPurchasesData = [], 
     isLoading: isPurchasesLoading, 
     refetch: refetchPurchases, 
     isRefetching: isPurchasesRefetching,
     fetchNextPage: fetchNextPurchasesPage,
     hasNextPage: hasNextPurchasesPage,
     isFetchingNextPage: isFetchingNextPurchasesPage
-  } = usePurchases();
-  const purchases = purchasesData || [];
+  } = useProviderPurchases(selectedProviderId || undefined);
+  const providerPurchases = providerPurchasesData || [];
   
   const { data: providers = [], isLoading: isProvidersLoading, refetch: refetchProviders, isRefetching: isProvidersRefetching } = useProviders();
   const selectedProvider = providers.find(p => p.id === selectedProviderId) || null;
 
   useFocusEffect(
     useCallback(() => {
-      refetchPurchases();
+      if (selectedProviderId) refetchPurchases();
       refetchProviders();
     }, [refetchPurchases, refetchProviders])
   );
@@ -214,11 +214,22 @@ export default function PurchasesScreen() {
       return;
     }
 
+    const maxAllowedAmount = Math.max(0, calculatedTotalCost + (selectedProvider.balance_pending || 0));
+    if (amount > maxAllowedAmount) {
+      showAlert(
+        "Invalid Payment", 
+        `Payment cannot exceed the total bill amount plus outstanding balance. Maximum allowed: ₹${maxAllowedAmount.toLocaleString()}.`,
+        "error"
+      );
+      return;
+    }
+
     createPurchase.mutate({
       provider_id: selectedProvider.id,
       bill_number: billNumber.trim() || undefined,
       total_cost: calculatedTotalCost,
       amount_paid: amount,
+      price_per_kg: selectedProvider.price_per_kg,
       items: itemsPayload
     }, {
       onSuccess: () => {
@@ -240,32 +251,87 @@ export default function PurchasesScreen() {
     }).join(', ');
   };
 
-  const renderPurchaseRow = ({ item }: { item: typeof purchases[0] }) => (
-    <View className="flex flex-row items-center border-b border-gray-100 bg-white min-h-[64px]">
-      <View className="w-32 px-4 py-4 flex flex-col justify-center">
-        <Text className="font-medium text-slate-900 text-sm">{new Date(item.created_at || Date.now()).toLocaleDateString()}</Text>
+  const renderPurchaseRow = ({ item }: { item: any }) => {
+    const receiptNumber = item.bill_number || (item.id ? String(item.id).split('-')[0].toUpperCase() : '-');
+    const currentBillBal = item.total_cost - item.amount_paid;
+    const formattedDate = item.created_at ? new Date(item.created_at).toLocaleDateString() : 'Unknown Date';
+
+    return (
+      <View className="bg-white p-4 rounded-2xl mb-4 shadow-sm border border-zinc-200 w-full">
+        {/* Header */}
+        <View className="flex-row justify-between items-start mb-4 border-b border-zinc-100 pb-3">
+          <View className="flex-1">
+            <View className="flex-row items-center gap-2 mb-1">
+              <Text className="text-zinc-500 text-xs font-semibold uppercase tracking-wider">Bill No: {receiptNumber}</Text>
+              {item.price_per_kg && (
+                <View className="bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                  <Text className="text-indigo-700 text-[10px] font-bold">₹{item.price_per_kg}/kg</Text>
+                </View>
+              )}
+            </View>
+            <Text className="text-xl font-bold text-zinc-900">
+              {selectedProvider?.name || 'Unknown Provider'}
+            </Text>
+            <Text className="text-zinc-500 text-sm mt-0.5">
+              {formattedDate}
+            </Text>
+          </View>
+        </View>
+
+        {/* Items Table */}
+        <View className="mb-4 bg-zinc-50 rounded-xl overflow-hidden border border-zinc-100">
+          <View className="flex-row border-b border-zinc-200 px-3 py-2 bg-zinc-100/50">
+            <Text className="flex-1 text-zinc-500 text-xs font-bold uppercase tracking-wider">Item</Text>
+            <Text className="w-16 text-center text-zinc-500 text-xs font-bold uppercase tracking-wider">Full</Text>
+            <Text className="w-16 text-center text-zinc-500 text-xs font-bold uppercase tracking-wider">Empty</Text>
+            <Text className="w-20 text-right text-zinc-500 text-xs font-bold uppercase tracking-wider">Total</Text>
+          </View>
+          {item.entries && item.entries.length > 0 ? (
+            item.entries.map((e: any, idx: number) => (
+              <View key={idx} className="flex-row px-3 py-2.5 border-b border-zinc-100 last:border-0 items-center">
+                <View className="flex-1 pr-2">
+                  <Text className="text-zinc-800 font-medium text-sm">{getItemName(e.item_id)}</Text>
+                </View>
+                <Text className="w-16 text-center text-zinc-800 font-semibold">{e.full_received}</Text>
+                <Text className="w-16 text-center text-zinc-600 text-xs font-medium">{e.empty_returned}</Text>
+                <Text className="w-20 text-right text-zinc-800 font-bold">₹{e.total_cost}</Text>
+              </View>
+            ))
+          ) : (
+            <View className="px-3 py-4 items-center">
+               <Text className="text-zinc-400 text-sm font-medium">No items</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Summary Section */}
+        <View className="mb-2 px-1">
+          <View className="flex-row justify-between items-center py-1.5">
+            <Text className="text-zinc-600 font-medium">Total Bill Amount</Text>
+            <Text className="text-zinc-900 font-bold text-base">₹{item.total_cost.toLocaleString()}</Text>
+          </View>
+          {item.amount_paid > 0 && (
+            <View className="flex-row justify-between items-center py-1.5">
+              <Text className="text-emerald-600 font-medium">Amount Paid</Text>
+              <Text className="text-emerald-600 font-semibold">- ₹{item.amount_paid.toLocaleString()}</Text>
+            </View>
+          )}
+          <View className="flex-row justify-between items-center pt-3 pb-1 border-t border-zinc-100 mt-1.5">
+            <Text className="text-zinc-800 font-semibold">Balance Amount</Text>
+            <Text className="text-zinc-900 font-bold text-base">₹{(item.closing_balance ?? (selectedProvider?.balance_pending || 0)).toLocaleString()}</Text>
+          </View>
+        </View>
       </View>
-      <View className="w-32 px-4 py-4 flex flex-col justify-center">
-        <Text className="font-mono text-slate-700 text-sm">{item.bill_number || '-'}</Text>
-      </View>
-      <View className="w-56 px-4 py-4 justify-center">
-        <Text className="text-sm font-medium text-slate-700" numberOfLines={2}>{getItemsSummary(item.entries)}</Text>
-      </View>
-      <View className="w-32 px-4 py-4 flex flex-col justify-center items-end">
-        <Text className="font-mono text-sm text-slate-900 font-bold">₹{item.total_cost.toLocaleString()}</Text>
-        {item.amount_paid > 0 && <Text className="font-mono text-[11px] text-emerald-600 mt-0.5">Paid ₹{item.amount_paid.toLocaleString()}</Text>}
-      </View>
-    </View>
-  );
+    );
+  };
 
   const renderProviderCRM = () => {
     if (!selectedProvider) return null;
     
-    // Filter purchases for this provider
-    const providerPurchases = purchases.filter(p => p.provider_id === selectedProvider.id);
+    // Provider purchases are natively paginated from the backend now
 
     return (
-      <View className="flex-1 pb-20">
+      <View className="flex-1">
         <View className="flex flex-row items-center justify-between mb-4 mt-2">
           <View className="flex flex-row items-center gap-4">
             <Pressable 
@@ -294,8 +360,6 @@ export default function PurchasesScreen() {
             <Text className="text-white text-sm font-medium">Record Purchase</Text>
           </Pressable>
         </View>
-
-
 
         <View className="flex flex-row gap-4 mb-6">
           <View className="flex-1 bg-white rounded-xl border border-gray-200 p-4 flex flex-col justify-center">
@@ -338,40 +402,33 @@ export default function PurchasesScreen() {
           </Pressable>
         </View>
 
-        <View className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-6 flex-1">
-          <View className="px-4 py-4 border-b border-gray-200 bg-gray-50 flex flex-row items-center justify-between">
+        <View className="bg-transparent rounded-xl flex-1">
+          <View className="px-4 py-4 border-b border-gray-200 bg-white rounded-t-xl flex flex-row items-center justify-between mb-2">
             <Text className="font-semibold text-slate-900">Purchase History</Text>
             <Text className="text-xs font-medium text-slate-500">{providerPurchases.length} Records</Text>
           </View>
-          <ScrollView horizontal={true} showsHorizontalScrollIndicator={true} className="flex-1">
-            <View className="flex flex-col">
-              <View className="flex flex-row bg-white border-b border-gray-200">
-                <Text className="w-32 px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</Text>
-                <Text className="w-32 px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Bill No</Text>
-                <Text className="w-56 px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Items</Text>
-                <Text className="w-32 px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Cost/Paid</Text>
+          <View className="flex-1">
+            {providerPurchases.length === 0 ? (
+              <View className="py-12 items-center justify-center w-full">
+                <Text className="text-slate-400 text-sm">No purchases recorded yet.</Text>
               </View>
-              {providerPurchases.length === 0 ? (
-                <View className="p-8 items-center justify-center w-full min-w-[500px]">
-                  <Text className="text-slate-400 text-sm">No purchases recorded yet.</Text>
-                </View>
-              ) : (
-                <FlatList
-                  data={providerPurchases}
-                  keyExtractor={(item) => item.id.toString()}
-                  renderItem={renderPurchaseRow}
-                  scrollEnabled={false}
-                  onEndReached={() => {
-                    if (hasNextPurchasesPage && !isFetchingNextPurchasesPage) {
-                      fetchNextPurchasesPage();
-                    }
-                  }}
-                  onEndReachedThreshold={0.5}
-                  ListFooterComponent={isFetchingNextPurchasesPage ? <ActivityIndicator className="my-4" /> : null}
-                />
-              )}
-            </View>
-          </ScrollView>
+            ) : (
+              <FlatList
+                data={providerPurchases}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={renderPurchaseRow}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 100 }}
+                onEndReached={() => {
+                  if (hasNextPurchasesPage && !isFetchingNextPurchasesPage) {
+                    fetchNextPurchasesPage();
+                  }
+                }}
+                onEndReachedThreshold={0.5}
+                ListFooterComponent={isFetchingNextPurchasesPage ? <ActivityIndicator className="my-4" /> : null}
+              />
+            )}
+          </View>
         </View>
       </View>
     );
@@ -379,7 +436,7 @@ export default function PurchasesScreen() {
 
   if (selectedProvider) {
     return (
-      <View className="flex-1 bg-gray-50 p-4 pt-12">
+      <View className="flex-1 bg-gray-50 px-4 pt-12">
         {renderProviderCRM()}
         
         {/* Record Purchase Modal (Scoped to Provider) */}
@@ -582,7 +639,7 @@ export default function PurchasesScreen() {
         <Pressable 
           onPress={() => {
             refetchProviders();
-            refetchPurchases();
+            if (selectedProviderId) refetchPurchases();
           }}
           disabled={isProvidersRefetching || isPurchasesRefetching}
           className="p-2.5 bg-white border border-gray-200 rounded-xl active:bg-slate-50 shadow-sm"

@@ -18,10 +18,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
-    try:
-        op.drop_column('items', 'category', schema='tenant')
-    except Exception:
-        pass
+    op.execute("ALTER TABLE tenant.items DROP COLUMN IF EXISTS category;")
 
 
 def downgrade() -> None:

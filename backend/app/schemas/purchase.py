@@ -27,11 +27,15 @@ class PurchaseBillBase(BaseModel):
     timestamp: datetime | None = None
 
 class PurchaseBillCreate(PurchaseBillBase):
+    price_per_kg: float | None = None
     items: list[PurchaseEntryCreate]
 
 class PurchaseBillOut(PurchaseBillBase):
     id: UUID
     created_at: datetime
+    opening_balance: float | None = None
+    closing_balance: float | None = None
+    price_per_kg: float | None = None
     entries: list[PurchaseEntryOut] = []
 
     model_config = ConfigDict(from_attributes=True)

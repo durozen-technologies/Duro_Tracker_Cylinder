@@ -27,11 +27,27 @@ export function usePurchases() {
   });
 }
 
+export function useProviderPurchases(providerId?: string) {
+  return useInfiniteQuery({
+    queryKey: ['purchases', 'provider', providerId],
+    initialPageParam: null as string | null,
+    queryFn: async ({ pageParam }) => {
+      const response = await api.get('/purchase/', {
+        params: { paginated: true, cursor: pageParam, limit: 20, provider_id: providerId }
+      });
+      return response.data;
+    },
+    getNextPageParam: (lastPage) => lastPage.next_cursor || undefined,
+    select: (data) => data.pages.flatMap((page) => page.items),
+    enabled: !!providerId,
+  });
+}
+
 export function useCreatePurchase() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (data: { provider_id: string; bill_number?: string; total_cost: number; amount_paid: number; items: { item_id: string; full_received: number; empty_returned: number; total_cost: number }[] }) => {
+    mutationFn: async (data: { provider_id: string; bill_number?: string; total_cost: number; amount_paid: number; price_per_kg?: number; items: { item_id: string; full_received: number; empty_returned: number; total_cost: number }[] }) => {
       const response = await api.post<PurchaseBill>('/purchase/', data);
       return response.data;
     },
