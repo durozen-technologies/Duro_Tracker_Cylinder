@@ -62,7 +62,7 @@ def create_tenant_schema_and_tables(session: Session, schema_name: str) -> None:
 
     # Stamp alembic version for the tenant to HEAD
     connection.execute(text(f'CREATE TABLE IF NOT EXISTS "{safe}".alembic_version (version_num VARCHAR(32) NOT NULL, CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num))'))
-    connection.execute(text(f'INSERT INTO "{safe}".alembic_version (version_num) VALUES (\'fcd17703ca13\') ON CONFLICT DO NOTHING'))
+    connection.execute(text(f'INSERT INTO "{safe}".alembic_version (version_num) VALUES (\'f3d1cd3ff95b\') ON CONFLICT DO NOTHING'))
 
 
 def drop_tenant_schema(session: Session, schema_name: str) -> None:

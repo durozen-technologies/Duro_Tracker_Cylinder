@@ -2683,3 +2683,26 @@ Fixed missing imports and duplicate state variables. Re-ran `tsc --noEmit` which
 
 - **[2026-07-29 10:35:06]**: User asked to add price_per_kg snapshot to purchase bill cards. Added column to DB, updated Pydantic schemas, and modified React Native UI to pass and display the price pill.
 - **[2026-07-29 10:42:53]**: User asked to add price_per_kg snapshot to purchase bill cards. Added column to DB, updated Pydantic schemas, and modified React Native UI to pass and display the price pill.
+## [2026-07-29] Debugging Multi-Tenant Database Migrations (Phase 2)
+
+### User Request
+> `check everything to all the tableds and are are working chec in the local why iit is crashing in the first pla ok now it is running ok`
+> `ok i want you check the main reason why the error apperd in the first place ok check all ok`
+> `why cant you remove the buy from the root ?`
+> `then resolve it from root then`
+> `ok push`
+
+### Actions Taken
+- Analyzed the root cause of the initial migration failure, concluding that Alembic was explicitly hardcoding `schema='tenant'` into migration scripts during autogeneration.
+- Researched Alembic configurations and discovered the migration trees for `public` and `tenant` were intertwined because the first tenant migration accidentally inherited the public migration as its `down_revision`.
+- Unlinked the migration trees by removing the `down_revision` from the first tenant migration (`109347070dbc`), making them two independent timelines.
+- Modified `backend/run_migrations.py` to strictly limit the `version_locations` to either the public directory or tenant directory depending on the current iteration step to avoid `Multiple heads` errors.
+- Modified `backend/migrations/env.py` to use a `render_item` hook to automatically strip the `schema="tenant"` argument during future autogenerations.
+- Modified `backend/migrations/env.py` to explicitly load an active tenant schema when a developer runs `ALEMBIC_MODE=tenant alembic revision --autogenerate`, allowing it to accurately assess the target database state.
+- Fixed the corrupted `alembic_version` table in the local developer database.
+- Confirmed that running `python run_migrations.py` locally now operates flawlessly across all isolated schemas.
+- Committed and pushed all architectural DB fixes to GitHub.
+
+### Terminal Commands Run
+- `git add . ; git commit -m "fix(db): Resolve Alembic structural bugs (add render_item hook to strip 'tenant' schema during autogeneration, unlink public/tenant trees)" ; git push`
+

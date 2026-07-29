@@ -1709,3 +1709,13 @@ Approved implementation plan for database query optimization and schema validati
 ### [2026-07-29 11:10:00] Provider Purchases Pagination
 - **User Request:** Implemented backend pagination for the Provider Purchases CRM view to reduce global load and improve scalability.
 - **Action Taken:** Updated `GET /purchase/` to accept `provider_id`. Created a specialized `useProviderPurchases` hook. Rewired `PurchasesScreen.tsx` to automatically pull pages mapped strictly to the active provider, bypassing the heavy local cache filtering completely.
+
+### [2026-07-29 16:50:49] Resolved Alembic Structural Bugs
+- **Request:** Deeply investigate the root cause of migration failures, explain why the models must retain their tenant schema declarations, and push the structural fixes.
+- **Action:** 
+  - Separated public and tenant migration trees to fix `alembic_version` table corruption and "Multiple heads" errors.
+  - Implemented `render_item` hook in `env.py` to dynamically strip `schema='tenant'` during autogeneration.
+  - Fixed `env.py` and `run_migrations.py` version tracking configurations.
+  - Successfully ran `python run_migrations.py` locally to verify the DB loops flawlessly.
+  - Pushed all architectural migration fixes to GitHub (`6839c88`).
+
