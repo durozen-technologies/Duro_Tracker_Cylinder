@@ -18,7 +18,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
-    op.execute("ALTER TABLE tenant.items DROP COLUMN IF EXISTS category;")
+    op.execute("ALTER TABLE items DROP COLUMN IF EXISTS category;")
 
 
 def downgrade() -> None:
