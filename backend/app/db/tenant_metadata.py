@@ -60,9 +60,22 @@ def create_tenant_schema_and_tables(session: Session, schema_name: str) -> None:
         connection_with_opts = connection.execution_options(schema_translate_map={"tenant": safe})
         Base.metadata.create_all(connection_with_opts, tables=tables)
 
-    # Stamp alembic version for the tenant to HEAD
+    # Stamp alembic version for the tenant to HEAD dynamically
+    import os
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+    
+    backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    alembic_ini_path = os.path.join(backend_dir, "alembic.ini")
+    
+    alembic_cfg = Config(alembic_ini_path)
+    alembic_cfg.set_main_option("version_locations", os.path.join(backend_dir, "migrations", "versions", "tenant"))
+    
+    script = ScriptDirectory.from_config(alembic_cfg)
+    tenant_head = script.get_current_head()
+
     connection.execute(text(f'CREATE TABLE IF NOT EXISTS "{safe}".alembic_version (version_num VARCHAR(32) NOT NULL, CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num))'))
-    connection.execute(text(f'INSERT INTO "{safe}".alembic_version (version_num) VALUES (\'f3d1cd3ff95b\') ON CONFLICT DO NOTHING'))
+    connection.execute(text(f'INSERT INTO "{safe}".alembic_version (version_num) VALUES (\'{tenant_head}\') ON CONFLICT DO NOTHING'))
 
 
 def drop_tenant_schema(session: Session, schema_name: str) -> None:

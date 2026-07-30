@@ -46,6 +46,14 @@ export default function PurchasesScreen() {
   const [isEditPriceModalOpen, setIsEditPriceModalOpen] = useState(false);
   const [editPricePerKg, setEditPricePerKg] = useState('');
   const [isInventoryModalOpen, setIsInventoryModalOpen] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState<string>(Date.now().toString(36) + Math.random().toString(36).substring(2));
+
+  // Clear cart and rotate idempotency key when provider changes
+  React.useEffect(() => {
+    setItemStates({});
+    setAmountPaid('');
+    setIdempotencyKey(Date.now().toString(36) + Math.random().toString(36).substring(2));
+  }, [selectedProviderId]);
 
   const [isEditProviderModalOpen, setIsEditProviderModalOpen] = useState(false);
   const [editProviderId, setEditProviderId] = useState<string | null>(null);
@@ -226,18 +234,22 @@ export default function PurchasesScreen() {
 
     createPurchase.mutate({
       provider_id: selectedProvider.id,
-      bill_number: billNumber.trim() || undefined,
+      bill_number: billNumber || undefined,
       total_cost: calculatedTotalCost,
       amount_paid: amount,
       price_per_kg: selectedProvider.price_per_kg,
-      items: itemsPayload
+      items: itemsPayload,
+      idempotencyKey: idempotencyKey
     }, {
       onSuccess: () => {
         setIsPurchaseModalOpen(false);
         setBillNumber('');
         setItemStates({});
         setAmountPaid('');
-      }
+        setIdempotencyKey(Date.now().toString(36) + Math.random().toString(36).substring(2));
+        showAlert('Success', 'Purchase recorded successfully.', 'success');
+      },
+      onError: (err: any) => {  }
     });
   };
 

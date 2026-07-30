@@ -50,13 +50,19 @@ async def create_organization(
         bill_prefix_collection=org_in.bill_prefix_collection
     )
     db.add(org)
-    await db.commit()
-    await db.refresh(org)
+    await db.flush()
     
     # Provision the physical schema for this tenant
     schema_name = build_schema_name(org.id)
-    await db.run_sync(create_tenant_schema_and_tables, schema_name)
+    try:
+        await db.run_sync(create_tenant_schema_and_tables, schema_name)
+    except Exception as e:
+        await db.rollback()
+        await db.run_sync(drop_tenant_schema, schema_name)
+        raise HTTPException(status_code=500, detail=f"Failed to provision tenant schema: {str(e)}") from e
+        
     await db.commit()
+    await db.refresh(org)
     
     return org
 

@@ -1,6 +1,7 @@
 import datetime
 import uuid
 from typing import Optional
+from fastapi import Query
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
@@ -100,27 +101,32 @@ async def update_item(
     item_in: ItemUpdate,
     db: AsyncSession = Depends(get_tenant_db),
 ):
-    item = await db.get(Item, item_id)
-    if not item:
-        raise HTTPException(status_code=404, detail="Item not found")
+    async with db.begin_nested() if db.in_transaction() else db.begin():
+        from sqlalchemy import text
+        await db.execute(text("SET LOCAL lock_timeout = '3s';"))
+        
+        item = await db.scalar(select(Item).where(Item.id == item_id).with_for_update())
+        if not item:
+            raise HTTPException(status_code=404, detail="Item not found")
 
-    if item_in.name is not None:
-        item.name = item_in.name
-    if item_in.price is not None:
-        item.price = item_in.price
-    if item_in.capacity_kg is not None:
-        item.capacity_kg = item_in.capacity_kg
-    if item_in.current_full is not None:
-        item.current_full = item_in.current_full
-    if item_in.current_empty is not None:
-        item.current_empty = item_in.current_empty
-    if item_in.hsn_code is not None:
-        item.hsn_code = item_in.hsn_code
-    if item_in.gst_percent is not None:
-        item.gst_percent = item_in.gst_percent
-    if item_in.is_active is not None:
-        item.is_active = item_in.is_active
+        if item_in.name is not None:
+            item.name = item_in.name
+        if item_in.price is not None:
+            item.price = item_in.price
+        if item_in.capacity_kg is not None:
+            item.capacity_kg = item_in.capacity_kg
+        if item_in.current_full is not None:
+            item.current_full = item_in.current_full
+        if item_in.current_empty is not None:
+            item.current_empty = item_in.current_empty
+        if item_in.hsn_code is not None:
+            item.hsn_code = item_in.hsn_code
+        if item_in.gst_percent is not None:
+            item.gst_percent = item_in.gst_percent
+        if item_in.is_active is not None:
+            item.is_active = item_in.is_active
 
+        await db.flush()
     await db.commit()
     await db.refresh(item)
     return item
@@ -246,7 +252,7 @@ class PaginatedLedgerOut(BaseModel):
 async def get_buyer_ledger(
     buyer_id: uuid.UUID,
     cursor: uuid.UUID | None = None,
-    limit: int = 20,
+    limit: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_tenant_db),
 ):
     from sqlalchemy.orm import selectinload
@@ -520,14 +526,16 @@ async def generate_sales_pdf_endpoint(
             filters.append(or_(*year_filters))
         date_display_text = ", ".join(display_years)
 
+    if not filters:
+        raise HTTPException(status_code=400, detail="A valid date filter is required to generate this report")
+
     if filters:
         stmt = stmt.where(and_(*filters))
-
     if buyer_ids:
         b_ids = [uuid.UUID(pid.strip()) for pid in buyer_ids.split(',')]
         stmt = stmt.where(DeliveryBill.buyer_id.in_(b_ids))
 
-    stmt = stmt.order_by(DeliveryBill.timestamp.asc())
+    stmt = stmt.order_by(DeliveryBill.timestamp.asc()).limit(1000)
     result = await db.execute(stmt)
     bills = result.scalars().all()
 
@@ -691,6 +699,9 @@ async def generate_purchase_pdf_endpoint(
             filters.append(or_(*year_filters))
         date_display_text = ", ".join(display_years)
 
+    if not filters:
+        raise HTTPException(status_code=400, detail="A valid date filter is required to generate this report")
+
     if provider_ids:
         # provider_ids is comma separated string of UUIDs
         import uuid
@@ -701,7 +712,7 @@ async def generate_purchase_pdf_endpoint(
     if filters:
         stmt = stmt.where(and_(*filters))
         
-    stmt = stmt.order_by(PurchaseBill.created_at.asc())
+    stmt = stmt.order_by(PurchaseBill.created_at.asc()).limit(1000)
     
     result = await db.scalars(stmt)
     bills_db = result.all()

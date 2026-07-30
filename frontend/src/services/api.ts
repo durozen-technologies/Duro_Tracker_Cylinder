@@ -3,8 +3,11 @@ import axiosRetry from 'axios-retry';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || (__DEV__ ? 'http://localhost:8000/api/v1' : '');
 
+if (!API_BASE_URL) {
+  throw new Error("EXPO_PUBLIC_API_URL is missing in environment");
+}
 export const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,

@@ -1719,3 +1719,40 @@ Approved implementation plan for database query optimization and schema validati
   - Successfully ran `python run_migrations.py` locally to verify the DB loops flawlessly.
   - Pushed all architectural migration fixes to GitHub (`6839c88`).
 
+
+### [2026-07-29 17:03:20] Fixed Tenant Registration Redundancy
+- **Request:** Perform a final sweep of the codebase for similar errors.
+- **Action:** 
+  - Verified no raw SQL `tenant` leaks exist.
+  - Updated `backend/app/db/tenant_metadata.py` to point to the newest Alembic head (`f3d1cd3ff95b`) so newly registered tenants don't attempt to re-run migrations that `create_all()` already covered.
+  - Pushed fix to GitHub (`267fd03`).
+
+
+## [2026-07-30 11:54:40] Implement Production Bug Fixes (Part 2)
+- Fixed atomic tenant schema provisioning in `super_admin.py` with proper schema drop on fallback.
+- Added strict pagination bounds (`ge=1, le=100`) to ledger and history lists in `admin.py`, `driver.py`, and `purchase.py`.
+- Hardened sales and purchase PDF generation in `admin.py` against empty date filters and bounded max items.
+- Introduced a `with_for_update` lock on item edits in `admin.py` to prevent race conditions.
+- Updated `tenant_metadata.py` to dynamically fetch the Alembic HEAD revision rather than relying on a hardcoded string.
+- Cleaned up frontend role types in `AuthContext.tsx` and `RootNavigator.tsx`.
+- Updated `useBuyers.ts` and `DeliveryScreen.tsx`/`DebtCollectionScreen.tsx` to automatically invalidate `['dashboard']` and `['buyers', id, 'ledger']` to ensure real-time balance updates.
+- Updated `BuyersScreen.tsx` to derive the `selectedBuyer` directly from the refreshed `buyers` list instead of caching an outdated local copy.
+
+## [2026-07-30 12:23:15] Fix Production Regressions (Part 3)
+- Fixed `IndentationError` in `admin.py` for both Sales and Purchases PDF generation guards.
+- Rewrote the inner transaction block of `create_debt_collection` in `driver.py` to correctly deduct from `balance_pending` without copying sales logic, and applied the cash+UPI overpay clamp (`> balance_pending`).
+- Added explicit `await db.rollback()` in all `IntegrityError` idempotency handlers (`driver.py` and `purchase.py`) before querying for the existing record.
+- Fixed `useDeleteBuyer` mutation hook in `useBuyers.ts` to invalidate `['buyers', 'bills']` and correctly reference the string variable for `['buyers', <id>, 'ledger']` invalidation.
+
+### [2026-07-30 12:53:00] Transaction Commit Hotfix
+- **User:** Reported Provider Bill wasn't appearing in purchase history.
+- **Agent:** Investigated transaction lifecycle. Found that wait db.commit() was accidentally deleted by a regex patch applied earlier during the Idempotency fixes. This caused the backend to roll back the bills.
+- **Fix:** Restored wait db.commit() in purchase.py and driver.py. Fully audited all routers (dmin.py, super_admin.py, uth.py) to confirm no other commits were missing.
+
+### [2026-07-30 12:57:00] Workspace Cleanup
+- **User:** Requested deletion of unwanted files.
+- **Agent:** Removed temporary python script files (ix_commit.py, ix_regressions.py, 	est_purchases.py, ackend\test_purchases2.py) from the workspace.
+
+### [2026-07-30 13:16:00] Workflow Consistency Hotfix
+- **User:** Asked to double check if workflow changes were applied fully.
+- **Agent:** Discovered that the Cart Clearing and Idempotency Key (Double-Tap Protection) features were only implemented in the driver's Sales screen, but missed in the admin's Purchases screen. Immediately patched \PurchasesScreen.tsx\ and \usePurchases.ts\ to ensure workflow consistency across the entire app.

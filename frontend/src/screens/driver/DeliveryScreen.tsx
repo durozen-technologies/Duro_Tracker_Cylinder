@@ -159,13 +159,25 @@ export default function DeliveryScreen() {
 
     const lineTotal = parseFloat((unitPrice * full).toFixed(2));
 
-    setCartItems(prev => [...prev, {
-      item: selectedItem,
-      fullDelivered: full,
-      emptyReceived: empty,
-      unitPrice,
-      lineTotal
-    }]);
+    setCartItems(prev => {
+      const existingItemIndex = prev.findIndex(c => c.item.id === selectedItem.id);
+      if (existingItemIndex >= 0) {
+        const existing = prev[existingItemIndex];
+        const newFull = existing.fullDelivered + full;
+        const newEmpty = existing.emptyReceived + empty;
+        const newLineTotal = parseFloat((unitPrice * newFull).toFixed(2));
+        const newCart = [...prev];
+        newCart[existingItemIndex] = { ...existing, fullDelivered: newFull, emptyReceived: newEmpty, lineTotal: newLineTotal };
+        return newCart;
+      }
+      return [...prev, {
+        item: selectedItem,
+        fullDelivered: full,
+        emptyReceived: empty,
+        unitPrice,
+        lineTotal
+      }];
+    });
 
     // Reset item form
     setItemId('');
@@ -490,7 +502,7 @@ export default function DeliveryScreen() {
                   <TouchableOpacity 
                     key={b.id} 
                     className={`p-4 mb-3 rounded-2xl active:opacity-80 ${buyerId === b.id ? 'bg-blue-50 border border-blue-200' : 'bg-white border border-zinc-100 shadow-sm'}`}
-                    onPress={() => { setBuyerId(b.id); setBuyerModalVisible(false); }}
+                    onPress={() => { setBuyerId(b.id); setCartItems([]); setIdempotencyKey(Date.now().toString(36) + Math.random().toString(36).substring(2)); setBuyerModalVisible(false); }}
                   >
                     <View className="flex-row justify-between items-start mb-2">
                       <Text className={`text-base font-bold ${buyerId === b.id ? 'text-blue-800' : 'text-zinc-900'}`}>{b.name}</Text>

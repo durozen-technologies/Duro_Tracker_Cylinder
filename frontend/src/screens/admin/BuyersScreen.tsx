@@ -42,7 +42,8 @@ export default function BuyersScreen() {
   const globalBillsData = Array.isArray(globalBillsPages) ? globalBillsPages : [];
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedBuyer, setSelectedBuyer] = useState<Buyer | null>(null);
+  const [selectedBuyerId, setSelectedBuyerId] = useState<string | null>(null);
+  const selectedBuyer = React.useMemo(() => buyers.find(b => b.id === selectedBuyerId) || null, [buyers, selectedBuyerId]);
   
   const { data: items = [] } = useItems();
   
@@ -137,15 +138,7 @@ export default function BuyersScreen() {
     }, {
       onSuccess: () => {
         setIsEditModalOpen(false);
-        if (selectedBuyer && selectedBuyer.id === editBuyerId) {
-          // Temporarily updating local selected buyer for instant UI update
-          setSelectedBuyer(prev => prev ? { 
-            ...prev, 
-            name: editName.trim(),
-            phone: editPhone.trim(),
-            address: editAddress.trim(),
-          } : null);
-        }
+
       }
     });
   };
@@ -156,7 +149,7 @@ export default function BuyersScreen() {
       onSuccess: () => {
         setIsEditModalOpen(false);
         if (selectedBuyer?.id === editBuyerId) {
-          setSelectedBuyer(null);
+          setSelectedBuyerId(null);
         }
       },
       onError: (err: any) => {
@@ -182,7 +175,7 @@ export default function BuyersScreen() {
     }, {
       onSuccess: (updatedData) => {
         setIsPriceModalOpen(false);
-        setSelectedBuyer(updatedData);
+        
       }
     });
   };
@@ -294,7 +287,7 @@ export default function BuyersScreen() {
           <View className="flex flex-row items-center justify-between mb-6 mt-2">
             <View className="flex flex-row items-center gap-4">
               <Pressable 
-                onPress={() => setSelectedBuyer(null)}
+                onPress={() => setSelectedBuyerId(null)}
                 className="p-2 bg-white border border-gray-200 rounded-lg"
               >
                 <ArrowLeft size={20} color="#475569" />
@@ -447,7 +440,7 @@ export default function BuyersScreen() {
             windowSize={5}
             renderItem={({ item }) => (
               <Pressable 
-                onPress={() => setSelectedBuyer(item)}
+                onPress={() => setSelectedBuyerId(item.id)}
                 className="flex flex-row items-center border-b border-gray-100 p-4 active:bg-slate-50"
               >
                 <View className="w-12 h-12 bg-indigo-50 rounded-full items-center justify-center mr-4">
@@ -563,13 +556,13 @@ export default function BuyersScreen() {
           
           <View className="flex flex-row p-1 bg-slate-200 rounded-xl w-full">
             <Pressable
-              onPress={() => { setActiveTab('crm'); setSelectedBuyer(null); }}
+              onPress={() => { setActiveTab('crm'); setSelectedBuyerId(null); }}
               className={`w-1/2 py-2 items-center justify-center rounded-lg ${activeTab === 'crm' ? 'bg-white' : ''}`}
             >
               <Text numberOfLines={1} adjustsFontSizeToFit className={`text-sm font-medium px-1 ${activeTab === 'crm' ? 'text-slate-900' : 'text-slate-500'}`}>Buyer CRM</Text>
             </Pressable>
             <Pressable
-              onPress={() => { setActiveTab('bills'); setSelectedBuyer(null); }}
+              onPress={() => { setActiveTab('bills'); setSelectedBuyerId(null); }}
               className={`w-1/2 py-2 items-center justify-center rounded-lg ${activeTab === 'bills' ? 'bg-white' : ''}`}
             >
               <Text numberOfLines={1} adjustsFontSizeToFit className={`text-sm font-medium px-1 ${activeTab === 'bills' ? 'text-slate-900' : 'text-slate-500'}`}>Global Daily Bills</Text>

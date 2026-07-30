@@ -19,9 +19,9 @@ function readEnvFileValue(key) {
   }
 }
 
-const expoPublicApiBaseUrl =
-  process.env.EXPO_PUBLIC_API_BASE_URL ||
-  readEnvFileValue("EXPO_PUBLIC_API_BASE_URL");
+const expoPublicApiUrl =
+  process.env.EXPO_PUBLIC_API_URL ||
+  readEnvFileValue("EXPO_PUBLIC_API_URL");
 const splashBackgroundColor = "#F7F1E8";
 const androidIconForeground = "./assets/images/android-icon-foreground.png";
 const androidIconBackground = "./assets/images/android-icon-background.png";
@@ -92,7 +92,7 @@ module.exports = () => ({
     ...config,
     extra: {
       ...config.extra,
-      expoPublicApiBaseUrl,
+      expoPublicApiUrl,
     },
   },
 });

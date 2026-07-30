@@ -47,8 +47,11 @@ export function useCreatePurchase() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (data: { provider_id: string; bill_number?: string; total_cost: number; amount_paid: number; price_per_kg?: number; items: { item_id: string; full_received: number; empty_returned: number; total_cost: number }[] }) => {
-      const response = await api.post<PurchaseBill>('/purchase/', data);
+    mutationFn: async (data: { provider_id: string; bill_number?: string; total_cost: number; amount_paid: number; price_per_kg?: number; items: { item_id: string; full_received: number; empty_returned: number; total_cost: number }[], idempotencyKey?: string }) => {
+      const { idempotencyKey, ...payload } = data;
+      const response = await api.post<PurchaseBill>('/purchase/', payload, {
+        headers: idempotencyKey ? { 'X-Idempotency-Key': idempotencyKey } : {}
+      });
       return response.data;
     },
     onSuccess: () => {

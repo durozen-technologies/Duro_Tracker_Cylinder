@@ -21,7 +21,7 @@ export default function RootNavigator() {
     return <LoginScreen />;
   }
 
-  if (userRole === 'delivery' || userRole === 'driver') {
+  if (userRole === 'driver') {
     return <DriverTabNavigator />;
   }
 

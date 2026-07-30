@@ -20,8 +20,14 @@ export function useCreateBuyer() {
       const response = await api.post<Buyer>('/admin/buyers', data);
       return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['buyers'] });
+      queryClient.invalidateQueries({ queryKey: ['buyers', 'bills'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      // Invalidate specific buyer ledger if it was an update
+      if (typeof variables === 'object' && variables !== null && 'id' in variables) {
+        queryClient.invalidateQueries({ queryKey: ['buyers', variables.id, 'ledger'] });
+      }
     }
   });
 }
@@ -34,8 +40,14 @@ export function useUpdateBuyer() {
       const response = await api.put<Buyer>(`/admin/buyers/${id}`, data);
       return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['buyers'] });
+      queryClient.invalidateQueries({ queryKey: ['buyers', 'bills'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      // Invalidate specific buyer ledger if it was an update
+      if (typeof variables === 'object' && variables !== null && 'id' in variables) {
+        queryClient.invalidateQueries({ queryKey: ['buyers', variables.id, 'ledger'] });
+      }
     }
   });
 }
@@ -47,8 +59,13 @@ export function useDeleteBuyer() {
     mutationFn: async (id: string) => {
       await api.delete(`/admin/buyers/${id}`);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['buyers'] });
+      queryClient.invalidateQueries({ queryKey: ['buyers', 'bills'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      if (typeof variables === 'string') {
+        queryClient.invalidateQueries({ queryKey: ['buyers', variables, 'ledger'] });
+      }
     }
   });
 }

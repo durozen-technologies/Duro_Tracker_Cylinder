@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { jwtDecode } from 'jwt-decode';
 import { useQueryClient } from '@tanstack/react-query';
 
-export type UserRole = 'super_admin' | 'admin' | 'driver' | 'delivery';
+export type UserRole = 'super_admin' | 'tenant_admin' | 'driver';
 
 interface AuthContextData {
   userToken: string | null;
