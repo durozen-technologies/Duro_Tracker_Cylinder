@@ -28,14 +28,15 @@ def create_access_token(
     perm_version: int = 0,
     expires_delta: timedelta | None = None,
 ) -> str:
-    expire = datetime.now(UTC) + (
-        expires_delta or timedelta(minutes=settings.access_token_expire_minutes)
-    )
     payload: dict[str, Any] = {
         "sub": str(subject),
-        "exp": expire,
         "perm_version": perm_version,
     }
+    
+    if expires_delta is not None:
+        payload["exp"] = datetime.now(UTC) + expires_delta
+    elif settings.access_token_expire_minutes > 0:
+        payload["exp"] = datetime.now(UTC) + timedelta(minutes=settings.access_token_expire_minutes)
     if role is not None:
         payload["role"] = role.value
     if org_id is not None:

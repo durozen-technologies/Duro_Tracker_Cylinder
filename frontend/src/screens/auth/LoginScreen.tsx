@@ -9,6 +9,7 @@ import {
   Image,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { Eye, EyeOff } from "lucide-react-native";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../services/api";
 import CustomAlert from "../../components/CustomAlert";
@@ -17,6 +18,7 @@ export default function LoginScreen() {
   const { login } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [alertConfig, setAlertConfig] = useState({
     visible: false,
@@ -107,15 +109,28 @@ export default function LoginScreen() {
             <Text className="text-zinc-700 text-xs mb-1.5 font-bold uppercase tracking-wider pl-1 mt-3">
               Password
             </Text>
-            <TextInput
-              className="bg-zinc-50 text-zinc-900 px-4 py-3.5 rounded-xl border border-zinc-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:bg-white"
-              placeholder="Enter your password"
-              placeholderTextColor="#a1a1aa"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              accessibilityLabel="Password Input"
-            />
+            <View className="relative justify-center">
+              <TextInput
+                className="bg-zinc-50 text-zinc-900 pl-4 pr-12 py-3.5 rounded-xl border border-zinc-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:bg-white"
+                placeholder="Enter your password"
+                placeholderTextColor="#a1a1aa"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                accessibilityLabel="Password Input"
+              />
+              <TouchableOpacity 
+                className="absolute right-4" 
+                onPress={() => setShowPassword(!showPassword)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                {showPassword ? (
+                  <EyeOff size={20} color="#a1a1aa" />
+                ) : (
+                  <Eye size={20} color="#a1a1aa" />
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 

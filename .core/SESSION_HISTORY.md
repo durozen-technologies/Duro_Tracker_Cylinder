@@ -1756,3 +1756,15 @@ Approved implementation plan for database query optimization and schema validati
 ### [2026-07-30 13:16:00] Workflow Consistency Hotfix
 - **User:** Asked to double check if workflow changes were applied fully.
 - **Agent:** Discovered that the Cart Clearing and Idempotency Key (Double-Tap Protection) features were only implemented in the driver's Sales screen, but missed in the admin's Purchases screen. Immediately patched \PurchasesScreen.tsx\ and \usePurchases.ts\ to ensure workflow consistency across the entire app.
+
+### [2026-07-30 14:26:00] Final Push
+- **User:** Approved pushing the codebase.
+- **Agent:** Verified all environmental configs and pushed commit f5906c5 to GitHub main branch.
+
+### [2026-07-30 15:46:11] Added Password Visibility Toggle
+- **Request:** Added eye icon in login password field.
+- **Action:** Updated `LoginScreen.tsx` with `lucide-react-native` icons and `showPassword` state.
+
+### [2026-07-30 15:48:43] Removed JWT Expiration
+- **Request:** Allow users to stay logged in indefinitely.
+- **Action:** Updated `security.py` to omit `exp` claim if expire minutes is 0, and updated `.env`.

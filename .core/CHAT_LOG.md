@@ -2775,3 +2775,22 @@ git add .
 git commit -m "fix: Full production hardening sweep (idempotency, concurrency locks, UI cache invalidation, pagination bounds)"
 git push
 ```
+
+## [2026-07-30 15:46:11] Quick UI Tweak: Password Toggle
+
+**User Request:**
+> `in the login page add an eye icon in the password field`
+
+**Actions Taken:**
+- Added a `showPassword` state in `LoginScreen.tsx`.
+- Imported `Eye` and `EyeOff` from `lucide-react-native`.
+- Wrapped the password `TextInput` in a relative View and added an absolute `TouchableOpacity` on the right side to toggle `secureTextEntry`.
+
+## [2026-07-30 15:48:43] Backend Tweak: Remove JWT Expiration
+
+**User Request:**
+> `@[d:\Duro_Tracker\.env:L12] if hey login no time limit only if they logout only`
+
+**Actions Taken:**
+- Modified `backend/app/core/security.py` to completely omit the `"exp"` claim from the JWT payload when `ACCESS_TOKEN_EXPIRE_MINUTES` is set to 0.
+- Updated local `.env` to set `ACCESS_TOKEN_EXPIRE_MINUTES=0`.
