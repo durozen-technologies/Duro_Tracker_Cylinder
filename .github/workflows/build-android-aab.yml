@@ -60,14 +60,36 @@ jobs:
         run: |
           echo $ANDROID_KEYSTORE_BASE64 | base64 --decode > release.keystore
 
+      - name: Configure Release Signing in build.gradle
+        working-directory: ./frontend/android/app
+        run: |
+          cat << 'EOF' > patch_gradle.py
+          with open('build.gradle', 'r') as f:
+              content = f.read()
+          
+          signing_block = """signingConfigs {
+              release {
+                  storeFile file("release.keystore")
+                  storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                  keyAlias System.getenv("ANDROID_KEY_ALIAS")
+                  keyPassword System.getenv("ANDROID_KEY_PASSWORD")
+              }
+          """
+          content = content.replace("signingConfigs {", signing_block)
+          content = content.replace("signingConfig signingConfigs.debug", "signingConfig signingConfigs.release")
+          
+          with open('build.gradle', 'w') as f:
+              f.write(content)
+          EOF
+          python3 patch_gradle.py
+
       - name: Build Release AAB with Gradle
         working-directory: ./frontend/android
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
-          ORG_GRADLE_PROJECT_MYAPP_RELEASE_STORE_FILE: "release.keystore"
-          ORG_GRADLE_PROJECT_MYAPP_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ORG_GRADLE_PROJECT_MYAPP_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ORG_GRADLE_PROJECT_MYAPP_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           echo "org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8" >> gradle.properties
           echo "org.gradle.workers.max=2" >> gradle.properties

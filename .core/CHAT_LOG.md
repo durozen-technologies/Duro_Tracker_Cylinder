@@ -2840,3 +2840,30 @@ git push
 **Actions Taken:**
 - Updated `.github/workflows/build-android-aab.yml` to decode `ANDROID_KEYSTORE_BASE64` and inject Gradle signing properties.
 - Guided the user on how to add these secrets to their GitHub repository settings.
+
+## [2026-08-13 14:18:11] Code Cleanup
+
+**User Request:**
+> `ok do it` (Revert the working directory to `37b3b91`)
+
+**Actions Taken:**
+- Ran `git reset --hard 37b3b917ae70f73bda882d47afb09141654914b1` to discard accidental deletions in `backend/app/main.py`.
+- Restored the Privacy Policy endpoint.
+
+## [2026-08-13 14:21:49] Delete Commit from GitHub
+
+**User Request:**
+> `4dca3a95cfb7642746501fa48a31d3feaae71404 delect this commit ok`
+
+**Actions Taken:**
+- Ran `git push --force` to push the local `main` branch (which was already reset to `37b3b91`) to the remote repository.
+- This successfully deleted the unwanted `4dca3a9` commit from GitHub history entirely.
+
+## [2026-08-13 14:43:53] Fix AAB Release Signing
+
+**User Request:**
+> `push` (Following fixing the Google Play Console 'debug mode' error)
+
+**Actions Taken:**
+- Pushed updates to `.github/workflows/build-android-aab.yml` to explicitly patch `build.gradle` for proper Release signing using GitHub Secrets.
+- Pushed the `.gitignore` update (ignoring `PLAY_STORE_SECRETS.txt`).

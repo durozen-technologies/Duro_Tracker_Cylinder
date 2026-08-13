@@ -16,3 +16,6 @@ job_log*
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Secrets
+.core/PLAY_STORE_SECRETS.txt
