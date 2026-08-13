@@ -2794,3 +2794,40 @@ git push
 **Actions Taken:**
 - Modified `backend/app/core/security.py` to completely omit the `"exp"` claim from the JWT payload when `ACCESS_TOKEN_EXPIRE_MINUTES` is set to 0.
 - Updated local `.env` to set `ACCESS_TOKEN_EXPIRE_MINUTES=0`.
+
+## [2026-07-31 10:12:32] Cleanup
+
+**User Request:**
+> `ok delect the test files`
+
+**Actions Taken:**
+- Deleted `backend/test_jwt.py` and `backend/test_login.py`.
+
+## [2026-08-11 16:18:44] IP Configuration
+
+**User Request:**
+> `terminal command to run the project`
+> `configure the ip`
+
+**Actions Taken:**
+- Found the local IPv4 address using `ipconfig` (192.168.1.8).
+- Updated `frontend/.env` to point `EXPO_PUBLIC_API_URL` to `http://192.168.1.8:8000/api/v1`.
+
+## [2026-08-13 13:41:31] Google Play Store Setup
+
+**User Request:**
+> `i will post the playstore`
+
+**Actions Taken:**
+- Updated the Android package name in `frontend/app.config.js` from the default `com.anonymous.durotracker` to `com.durozen.durotracker`.
+- Updated the iOS bundle identifier to match.
+- Provided the user with the exact text to enter into the Google Play Console form.
+
+## [2026-08-13 13:50:16] GitHub Action for AAB
+
+**User Request:**
+> `create an workflow file to buils an aab foramt app ok `
+
+**Actions Taken:**
+- Created `.github/workflows/build-android-aab.yml` configured to use `:app:bundleRelease` to generate an AAB.
+- Updated artifact path to `build/outputs/bundle/release/app-release.aab`.

@@ -42,7 +42,7 @@ const config = {
   },
   ios: {
     supportsTablet: true,
-    bundleIdentifier: "com.anonymous.durotracker",
+    bundleIdentifier: "com.durozen.durotracker",
   },
   android: {
     splash: {
@@ -60,7 +60,7 @@ const config = {
       "android.permission.ACCESS_FINE_LOCATION",
       "android.permission.READ_MEDIA_IMAGES",
     ],
-    package: "com.anonymous.durotracker",
+    package: "com.durozen.durotracker",
   },
   web: {},
   plugins: [

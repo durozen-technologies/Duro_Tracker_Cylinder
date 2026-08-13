@@ -1768,3 +1768,19 @@ Approved implementation plan for database query optimization and schema validati
 ### [2026-07-30 15:48:43] Removed JWT Expiration
 - **Request:** Allow users to stay logged in indefinitely.
 - **Action:** Updated `security.py` to omit `exp` claim if expire minutes is 0, and updated `.env`.
+
+### [2026-07-31 10:12:32] Cleanup
+- **Request:** Delete test files.
+- **Action:** Removed `test_jwt.py` and `test_login.py` from the backend.
+
+### [2026-08-11 16:18:44] IP Configuration
+- **Request:** Configure local IP for development.
+- **Action:** Updated `frontend/.env` to use `192.168.1.8`.
+
+### [2026-08-13 13:41:31] Google Play Store Setup
+- **Request:** Configure app for Google Play Console.
+- **Action:** Updated Android/iOS package names to `com.durozen.durotracker` in `app.config.js`.
+
+### [2026-08-13 13:50:16] GitHub Action for AAB
+- **Request:** Create workflow to build AAB for Google Play Store.
+- **Action:** Created `build-android-aab.yml` leveraging `:app:bundleRelease`.

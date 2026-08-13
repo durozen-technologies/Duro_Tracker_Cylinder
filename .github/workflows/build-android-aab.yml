@@ -1,0 +1,76 @@
+name: Build Android AAB (Play Store)
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+jobs:
+  build:
+    name: Build Android AAB
+    runs-on: ubuntu-latest
+    env:
+      EXPO_PUBLIC_API_URL: "https://durotracker.durozen.in/api/v1"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Setup Python (for icon generation)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci || npm install
+
+      - name: Expo Prebuild
+        working-directory: ./frontend
+        run: npx expo prebuild --platform android --clean
+
+      - name: Force Release Build to use Debug Keystore
+        working-directory: ./frontend/android/app
+        run: |
+          sed -i 's/signingConfigs.release/signingConfigs.debug/g' build.gradle
+
+      - name: Build Release AAB with Gradle
+        working-directory: ./frontend/android
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+        run: |
+          echo "org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8" >> gradle.properties
+          echo "org.gradle.workers.max=2" >> gradle.properties
+          chmod +x gradlew
+          ./gradlew :app:bundleRelease --no-daemon
+
+      - name: Upload AAB Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Duro-Tracker-App-AAB
+          path: frontend/android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 7
