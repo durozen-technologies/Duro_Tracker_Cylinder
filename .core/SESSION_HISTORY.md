@@ -1784,3 +1784,7 @@ Approved implementation plan for database query optimization and schema validati
 ### [2026-08-13 13:50:16] GitHub Action for AAB
 - **Request:** Create workflow to build AAB for Google Play Store.
 - **Action:** Created `build-android-aab.yml` leveraging `:app:bundleRelease`.
+
+### [2026-08-13 13:52:08] Keystore Setup
+- **Request:** Configure Play Store signing keys.
+- **Action:** Modified `build-android-aab.yml` to use GitHub Secrets for release signing.

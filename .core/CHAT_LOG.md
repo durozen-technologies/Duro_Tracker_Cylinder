@@ -2831,3 +2831,12 @@ git push
 **Actions Taken:**
 - Created `.github/workflows/build-android-aab.yml` configured to use `:app:bundleRelease` to generate an AAB.
 - Updated artifact path to `build/outputs/bundle/release/app-release.aab`.
+
+## [2026-08-13 13:52:08] Keystore Configuration for Play Store
+
+**User Request:**
+> `bro like where are the keys ??` (Provided keystore secrets in chat)
+
+**Actions Taken:**
+- Updated `.github/workflows/build-android-aab.yml` to decode `ANDROID_KEYSTORE_BASE64` and inject Gradle signing properties.
+- Guided the user on how to add these secrets to their GitHub repository settings.
