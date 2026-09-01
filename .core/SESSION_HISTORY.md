@@ -1800,3 +1800,7 @@ Approved implementation plan for database query optimization and schema validati
 ### [2026-08-13 14:43:53] Push Release Fix
 - **Request:** Push release signing fix.
 - **Action:** Committed and pushed `build-android-aab.yml` (patching Expo's `build.gradle` for release keystore) and `.gitignore`.
+
+### [2026-09-01 13:41:25] Bump App Version
+- **Request:** Increase the app version code.
+- **Action:** Bumped `version` to `1.0.1` and added `versionCode: 2` in `app.config.js`.

@@ -30,7 +30,7 @@ const androidIconMonochrome = "./assets/images/android-icon-monochrome.png";
 const config = {
   name: "Duro Tracker",
   slug: "duro-tracker",
-  version: "1.0.0",
+  version: "1.0.1",
   orientation: "portrait",
   icon: "./assets/icon.png",
   scheme: "durotracker",
@@ -45,6 +45,7 @@ const config = {
     bundleIdentifier: "com.durozen.durotracker",
   },
   android: {
+    versionCode: 2,
     splash: {
       image: "./assets/Logo.png",
       resizeMode: "contain",

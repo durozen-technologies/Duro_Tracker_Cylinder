@@ -2867,3 +2867,13 @@ git push
 **Actions Taken:**
 - Pushed updates to `.github/workflows/build-android-aab.yml` to explicitly patch `build.gradle` for proper Release signing using GitHub Secrets.
 - Pushed the `.gitignore` update (ignoring `PLAY_STORE_SECRETS.txt`).
+
+## [2026-09-01 13:41:25] Bump App Version
+
+**User Request:**
+> `ok increase the version code by one ok`
+
+**Actions Taken:**
+- Edited `frontend/app.config.js`.
+- Bumbed `version` from `"1.0.0"` to `"1.0.1"`.
+- Added `versionCode: 2` to the `android` configuration block.
