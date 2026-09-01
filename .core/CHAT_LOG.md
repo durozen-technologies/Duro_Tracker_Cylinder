@@ -2877,3 +2877,13 @@ git push
 - Edited `frontend/app.config.js`.
 - Bumbed `version` from `"1.0.0"` to `"1.0.1"`.
 - Added `versionCode: 2` to the `android` configuration block.
+
+## [2026-09-01 14:38:27] Remove Debug Text Files from Git
+
+**User Request:**
+> `push`
+
+**Actions Taken:**
+- Noticed that `diff.txt` and `diff_utf8.txt` were originally checked into the Git repository before we deleted them.
+- Committed the removal of these temporary files.
+- Pushed the cleanup to the repository.
