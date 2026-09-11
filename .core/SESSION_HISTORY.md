@@ -1808,3 +1808,7 @@ Approved implementation plan for database query optimization and schema validati
 ### [2026-09-01 14:38:27] Repository Cleanup
 - **Request:** Push changes.
 - **Action:** Committed and pushed the deletion of legacy `diff.txt` and `diff_utf8.txt` files from the Git index.
+
+### [2026-09-11 12:32:22] Google Play Compliance Fix
+- **Request:** Fix the Google Play rejection regarding the photo picker policy.
+- **Action:** Removed `READ_MEDIA_IMAGES` from `app.config.js` and bumped version to `1.0.2` (Code 3). Pushed the fix.

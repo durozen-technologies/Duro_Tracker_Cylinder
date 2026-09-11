@@ -2887,3 +2887,13 @@ git push
 - Noticed that `diff.txt` and `diff_utf8.txt` were originally checked into the Git repository before we deleted them.
 - Committed the removal of these temporary files.
 - Pushed the cleanup to the repository.
+
+## [2026-09-11 12:32:22] Remove READ_MEDIA_IMAGES for Google Play Compliance
+
+**User Request:**
+> `correct the error` (Google Play rejected the app due to READ_MEDIA_IMAGES policy)
+
+**Actions Taken:**
+- Removed `"android.permission.READ_MEDIA_IMAGES"` from `frontend/app.config.js`.
+- Bumped `version` to `1.0.2` and `versionCode` to `3` to allow a new upload.
+- Pushed changes to trigger a new GitHub Actions `.aab` build.

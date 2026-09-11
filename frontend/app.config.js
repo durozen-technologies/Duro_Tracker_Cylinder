@@ -30,7 +30,7 @@ const androidIconMonochrome = "./assets/images/android-icon-monochrome.png";
 const config = {
   name: "Duro Tracker",
   slug: "duro-tracker",
-  version: "1.0.1",
+  version: "1.0.2",
   orientation: "portrait",
   icon: "./assets/icon.png",
   scheme: "durotracker",
@@ -45,7 +45,7 @@ const config = {
     bundleIdentifier: "com.durozen.durotracker",
   },
   android: {
-    versionCode: 2,
+    versionCode: 3,
     splash: {
       image: "./assets/Logo.png",
       resizeMode: "contain",
@@ -59,7 +59,6 @@ const config = {
       "android.permission.BLUETOOTH_SCAN",
       "android.permission.BLUETOOTH_CONNECT",
       "android.permission.ACCESS_FINE_LOCATION",
-      "android.permission.READ_MEDIA_IMAGES",
     ],
     package: "com.durozen.durotracker",
   },
